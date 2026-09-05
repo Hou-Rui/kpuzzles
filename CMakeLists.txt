@@ -1,0 +1,141 @@
+cmake_minimum_required(VERSION 3.16)
+project(kpuzzles LANGUAGES CXX)
+
+find_package(Qt6 REQUIRED COMPONENTS Core Gui Qml Quick)
+qt_standard_project_setup(REQUIRES 6.8)
+
+qt_add_executable(kpuzzles
+    puzzles/auxiliary/combi-test.c
+    puzzles/auxiliary/divvy-test.c
+    puzzles/auxiliary/findloop-test.c
+    puzzles/auxiliary/hat-test.c
+    puzzles/auxiliary/hatgen.c
+    puzzles/auxiliary/latin-test.c
+    puzzles/auxiliary/matching.c
+    puzzles/auxiliary/obfusc.c
+    puzzles/auxiliary/penrose-legacy-test.c
+    puzzles/auxiliary/penrose-test.c
+    puzzles/auxiliary/sort-test.c
+    puzzles/auxiliary/spectre-gen.c
+    puzzles/auxiliary/spectre-help.c
+    puzzles/auxiliary/spectre-help.h
+    puzzles/auxiliary/spectre-tables-extra.h
+    puzzles/auxiliary/spectre-test.c
+    puzzles/auxiliary/tree234-test.c
+    puzzles/blackbox.c
+    puzzles/bridges.c
+    puzzles/combi.c
+    puzzles/cube.c
+    puzzles/divvy.c
+    puzzles/dominosa.c
+    puzzles/draw-poly.c
+    puzzles/drawing.c
+    puzzles/dsf.c
+    puzzles/emcc.c
+    puzzles/fifteen.c
+    puzzles/filling.c
+    puzzles/findloop.c
+    puzzles/flip.c
+    puzzles/flood.c
+    puzzles/fuzzpuzz.c
+    puzzles/galaxies.c
+    puzzles/grid.c
+    puzzles/grid.h
+    puzzles/gtk.c
+    puzzles/gtk.h
+    puzzles/guess.c
+    puzzles/hat-internal.h
+    puzzles/hat-tables.h
+    puzzles/hat.c
+    puzzles/hat.h
+    puzzles/inertia.c
+    puzzles/keen.c
+    puzzles/latin.c
+    puzzles/latin.h
+    puzzles/laydomino.c
+    puzzles/lightup.c
+    puzzles/list.c
+    puzzles/loopgen.c
+    puzzles/loopgen.h
+    puzzles/loopy.c
+    puzzles/magnets.c
+    puzzles/malloc.c
+    puzzles/map.c
+    puzzles/matching.c
+    puzzles/matching.h
+    puzzles/midend.c
+    puzzles/mines.c
+    puzzles/misc.c
+    puzzles/mosaic.c
+    puzzles/nestedvm.c
+    puzzles/net.c
+    puzzles/netslide.c
+    puzzles/no-icon.c
+    puzzles/nullfe.c
+    puzzles/nullgame.c
+    puzzles/palisade.c
+    puzzles/pattern.c
+    puzzles/pearl.c
+    puzzles/pegs.c
+    puzzles/penrose-internal.h
+    puzzles/penrose-legacy.c
+    puzzles/penrose-legacy.h
+    puzzles/penrose.c
+    puzzles/penrose.h
+    puzzles/printing.c
+    puzzles/ps.c
+    puzzles/puzzles.h
+    puzzles/random.c
+    puzzles/range.c
+    puzzles/rect.c
+    puzzles/samegame.c
+    puzzles/signpost.c
+    puzzles/singles.c
+    puzzles/sixteen.c
+    puzzles/slant.c
+    puzzles/solo.c
+    puzzles/sort.c
+    puzzles/spectre-internal.h
+    puzzles/spectre-tables-auto.h
+    puzzles/spectre-tables-manual.h
+    puzzles/spectre.c
+    puzzles/spectre.h
+    puzzles/tdq.c
+    puzzles/tents.c
+    puzzles/towers.c
+    puzzles/tracks.c
+    puzzles/tree234.c
+    puzzles/tree234.h
+    puzzles/twiddle.c
+    puzzles/undead.c
+    puzzles/unequal.c
+    puzzles/unfinished/group.c
+    puzzles/unfinished/numgame.c
+    puzzles/unfinished/path.c
+    puzzles/unfinished/separate.c
+    puzzles/unfinished/slide.c
+    puzzles/unfinished/sokoban.c
+    puzzles/unruly.c
+    puzzles/untangle.c
+    puzzles/version.c
+    puzzles/version.h
+    puzzles/windows.c
+)
+
+qt_add_qml_module(kpuzzles
+    URI kpuzzles
+    QML_FILES
+        puzzles/emcclib.js
+        puzzles/emccpre.js
+        puzzles/kaios/kaiads-glue.js
+)
+set_property(TARGET kpuzzles PROPERTY RUNTIME_OUTPUT_NAME "kpuzzlesapp")
+
+
+target_link_libraries(kpuzzles
+    PRIVATE
+        Qt::Core
+        Qt::Gui
+        Qt::Qml
+        Qt::Quick
+)
