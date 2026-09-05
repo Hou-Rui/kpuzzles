@@ -1,141 +1,170 @@
-cmake_minimum_required(VERSION 3.16)
-project(kpuzzles LANGUAGES CXX)
+cmake_minimum_required(VERSION 3.22)
 
-find_package(Qt6 REQUIRED COMPONENTS Core Gui Qml Quick)
+project(kpuzzles VERSION 0.1.0 LANGUAGES C CXX)
+
+set(CMAKE_C_STANDARD 99)
+set(CMAKE_C_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+find_package(Qt6 6.8 REQUIRED COMPONENTS Core Gui Qml Quick QuickControls2)
+
+# Kirigami is a QML dependency.  It is deliberately discovered here so that
+# package managers can diagnose a missing KDE runtime dependency at configure
+# time, while keeping the source tree usable on systems that only provide Qt
+# for static analysis.
+find_package(KF6Kirigami 6.0 QUIET)
+if(NOT KF6Kirigami_FOUND)
+    message(WARNING "KF6Kirigami was not found. kpuzzles will build, but the QML application needs the KDE Kirigami runtime to start.")
+endif()
+
 qt_standard_project_setup(REQUIRES 6.8)
 
+set(PUZZLES_DIR "${CMAKE_CURRENT_SOURCE_DIR}/puzzles")
+
+# These are the platform-independent sources used by puzzles' own Unix
+# frontends.  gtk.c/windows.c/nullfe.c and all auxiliary programs are not part
+# of the Qt frontend.  Keeping the list explicit prevents a helper with its
+# own main() from accidentally becoming part of the application.
+set(PUZZLES_CORE_SOURCES
+    combi.c
+    divvy.c
+    draw-poly.c
+    drawing.c
+    dsf.c
+    findloop.c
+    grid.c
+    latin.c
+    laydomino.c
+    loopgen.c
+    malloc.c
+    matching.c
+    midend.c
+    misc.c
+    penrose.c
+    penrose-legacy.c
+    printing.c
+    ps.c
+    random.c
+    sort.c
+    spectre.c
+    tdq.c
+    tree234.c
+    version.c
+    hat.c
+)
+
+set(PUZZLES_GAME_SOURCES
+    blackbox.c
+    bridges.c
+    cube.c
+    dominosa.c
+    fifteen.c
+    filling.c
+    flip.c
+    flood.c
+    galaxies.c
+    guess.c
+    inertia.c
+    keen.c
+    lightup.c
+    loopy.c
+    magnets.c
+    map.c
+    mines.c
+    mosaic.c
+    net.c
+    netslide.c
+    palisade.c
+    pattern.c
+    pearl.c
+    pegs.c
+    range.c
+    rect.c
+    samegame.c
+    signpost.c
+    singles.c
+    sixteen.c
+    slant.c
+    solo.c
+    tents.c
+    towers.c
+    tracks.c
+    twiddle.c
+    undead.c
+    unequal.c
+    unruly.c
+    untangle.c
+)
+
+set(PUZZLES_GAME_NAMES
+    blackbox bridges cube dominosa fifteen filling flip flood galaxies guess
+    inertia keen lightup loopy magnets map mines mosaic net netslide palisade
+    pattern pearl pegs range rect samegame signpost singles sixteen slant solo
+    tents towers tracks twiddle undead unequal unruly untangle
+)
+
+# list.c includes this generated header when COMBINED is enabled.
+set(GENERATED_PUZZLES_INCLUDE "${CMAKE_CURRENT_BINARY_DIR}/generated-puzzles")
+file(MAKE_DIRECTORY "${GENERATED_PUZZLES_INCLUDE}")
+set(GENERATED_GAMES_HEADER "${GENERATED_PUZZLES_INCLUDE}/generated-games.h")
+file(WRITE "${GENERATED_GAMES_HEADER}" "")
+foreach(game_name IN LISTS PUZZLES_GAME_NAMES)
+    file(APPEND "${GENERATED_GAMES_HEADER}" "GAME(${game_name})\n")
+endforeach()
+
+set(PUZZLES_SOURCES)
+foreach(source IN LISTS PUZZLES_CORE_SOURCES PUZZLES_GAME_SOURCES)
+    list(APPEND PUZZLES_SOURCES "${PUZZLES_DIR}/${source}")
+endforeach()
+list(APPEND PUZZLES_SOURCES "${PUZZLES_DIR}/list.c")
+
 qt_add_executable(kpuzzles
-    puzzles/auxiliary/combi-test.c
-    puzzles/auxiliary/divvy-test.c
-    puzzles/auxiliary/findloop-test.c
-    puzzles/auxiliary/hat-test.c
-    puzzles/auxiliary/hatgen.c
-    puzzles/auxiliary/latin-test.c
-    puzzles/auxiliary/matching.c
-    puzzles/auxiliary/obfusc.c
-    puzzles/auxiliary/penrose-legacy-test.c
-    puzzles/auxiliary/penrose-test.c
-    puzzles/auxiliary/sort-test.c
-    puzzles/auxiliary/spectre-gen.c
-    puzzles/auxiliary/spectre-help.c
-    puzzles/auxiliary/spectre-help.h
-    puzzles/auxiliary/spectre-tables-extra.h
-    puzzles/auxiliary/spectre-test.c
-    puzzles/auxiliary/tree234-test.c
-    puzzles/blackbox.c
-    puzzles/bridges.c
-    puzzles/combi.c
-    puzzles/cube.c
-    puzzles/divvy.c
-    puzzles/dominosa.c
-    puzzles/draw-poly.c
-    puzzles/drawing.c
-    puzzles/dsf.c
-    puzzles/emcc.c
-    puzzles/fifteen.c
-    puzzles/filling.c
-    puzzles/findloop.c
-    puzzles/flip.c
-    puzzles/flood.c
-    puzzles/fuzzpuzz.c
-    puzzles/galaxies.c
-    puzzles/grid.c
-    puzzles/grid.h
-    puzzles/gtk.c
-    puzzles/gtk.h
-    puzzles/guess.c
-    puzzles/hat-internal.h
-    puzzles/hat-tables.h
-    puzzles/hat.c
-    puzzles/hat.h
-    puzzles/inertia.c
-    puzzles/keen.c
-    puzzles/latin.c
-    puzzles/latin.h
-    puzzles/laydomino.c
-    puzzles/lightup.c
-    puzzles/list.c
-    puzzles/loopgen.c
-    puzzles/loopgen.h
-    puzzles/loopy.c
-    puzzles/magnets.c
-    puzzles/malloc.c
-    puzzles/map.c
-    puzzles/matching.c
-    puzzles/matching.h
-    puzzles/midend.c
-    puzzles/mines.c
-    puzzles/misc.c
-    puzzles/mosaic.c
-    puzzles/nestedvm.c
-    puzzles/net.c
-    puzzles/netslide.c
-    puzzles/no-icon.c
-    puzzles/nullfe.c
-    puzzles/nullgame.c
-    puzzles/palisade.c
-    puzzles/pattern.c
-    puzzles/pearl.c
-    puzzles/pegs.c
-    puzzles/penrose-internal.h
-    puzzles/penrose-legacy.c
-    puzzles/penrose-legacy.h
-    puzzles/penrose.c
-    puzzles/penrose.h
-    puzzles/printing.c
-    puzzles/ps.c
-    puzzles/puzzles.h
-    puzzles/random.c
-    puzzles/range.c
-    puzzles/rect.c
-    puzzles/samegame.c
-    puzzles/signpost.c
-    puzzles/singles.c
-    puzzles/sixteen.c
-    puzzles/slant.c
-    puzzles/solo.c
-    puzzles/sort.c
-    puzzles/spectre-internal.h
-    puzzles/spectre-tables-auto.h
-    puzzles/spectre-tables-manual.h
-    puzzles/spectre.c
-    puzzles/spectre.h
-    puzzles/tdq.c
-    puzzles/tents.c
-    puzzles/towers.c
-    puzzles/tracks.c
-    puzzles/tree234.c
-    puzzles/tree234.h
-    puzzles/twiddle.c
-    puzzles/undead.c
-    puzzles/unequal.c
-    puzzles/unfinished/group.c
-    puzzles/unfinished/numgame.c
-    puzzles/unfinished/path.c
-    puzzles/unfinished/separate.c
-    puzzles/unfinished/slide.c
-    puzzles/unfinished/sokoban.c
-    puzzles/unruly.c
-    puzzles/untangle.c
-    puzzles/version.c
-    puzzles/version.h
-    puzzles/windows.c
+    src/main.cpp
+    src/PuzzleCatalog.cpp
+    src/PuzzleCatalog.h
+    src/PuzzleView.cpp
+    src/PuzzleView.h
+    ${PUZZLES_SOURCES}
+)
+
+target_compile_definitions(kpuzzles PRIVATE COMBINED)
+target_include_directories(kpuzzles PRIVATE
+    "${PUZZLES_DIR}"
+    "${GENERATED_PUZZLES_INCLUDE}"
 )
 
 qt_add_qml_module(kpuzzles
     URI kpuzzles
+    VERSION 1.0
     QML_FILES
-        puzzles/emcclib.js
-        puzzles/emccpre.js
-        puzzles/kaios/kaiads-glue.js
+        Main.qml
+        HomePage.qml
+        PuzzlePage.qml
 )
-set_property(TARGET kpuzzles PROPERTY RUNTIME_OUTPUT_NAME "kpuzzlesapp")
 
+target_link_libraries(kpuzzles PRIVATE
+    Qt6::Core
+    Qt6::Gui
+    Qt6::Qml
+    Qt6::Quick
+    Qt6::QuickControls2
+    m
+)
 
-target_link_libraries(kpuzzles
-    PRIVATE
-        Qt::Core
-        Qt::Gui
-        Qt::Qml
-        Qt::Quick
+if(TARGET KF6::Kirigami)
+    target_link_libraries(kpuzzles PRIVATE KF6::Kirigami)
+endif()
+
+set_target_properties(kpuzzles PROPERTIES
+    # qt_add_qml_module uses a build-time directory named after the target;
+    # keep the executable name distinct from it.
+    OUTPUT_NAME kpuzzlesapp
+    WIN32_EXECUTABLE TRUE
+    MACOSX_BUNDLE TRUE
+)
+
+install(TARGETS kpuzzles
+    BUNDLE DESTINATION .
+    RUNTIME DESTINATION bin
 )

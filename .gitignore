@@ -1,0 +1,50 @@
+# CMake build trees and generated files
+build/
+cmake-build-*/
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+CTestTestfile.cmake
+Makefile
+install_manifest.txt
+compile_commands.json
+
+# Qt / QML generated files
+*.qmlc
+*.jsc
+*.qmltypes
+*_qml.cpp
+*_qml.cpp.aotstats
+qmlcache_loader.cpp
+.qmlcache/
+.qt/
+
+# Qt Creator and other local IDE state
+.idea/
+*.user
+*.user.*
+*.pro.user
+.vscode/
+
+# Compiled objects and application binaries
+*.o
+*.obj
+*.a
+*.so
+*.dylib
+*.dll
+*.exe
+kpuzzlesapp
+
+# Test and coverage output
+Testing/
+coverage/
+*.gcda
+*.gcno
+*.gcov
+
+# Platform and editor noise
+.DS_Store
+Thumbs.db
+*~
+.#*
