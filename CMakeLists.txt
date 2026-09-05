@@ -104,6 +104,12 @@ set(PUZZLES_GAME_NAMES
     tents towers tracks twiddle undead unequal unruly untangle
 )
 
+set(PUZZLES_HELP_FILES)
+foreach(game_name IN LISTS PUZZLES_GAME_NAMES)
+    list(APPEND PUZZLES_HELP_FILES
+        "${PUZZLES_DIR}/html/${game_name}.html")
+endforeach()
+
 # list.c includes this generated header when COMBINED is enabled.
 set(GENERATED_PUZZLES_INCLUDE "${CMAKE_CURRENT_BINARY_DIR}/generated-puzzles")
 file(MAKE_DIRECTORY "${GENERATED_PUZZLES_INCLUDE}")
@@ -132,6 +138,12 @@ target_compile_definitions(kpuzzles PRIVATE COMBINED)
 target_include_directories(kpuzzles PRIVATE
     "${PUZZLES_DIR}"
     "${GENERATED_PUZZLES_INCLUDE}"
+)
+
+qt_add_resources(kpuzzles puzzle_help
+    PREFIX "/puzzles-help"
+    BASE "${PUZZLES_DIR}/html"
+    FILES ${PUZZLES_HELP_FILES}
 )
 
 qt_add_qml_module(kpuzzles

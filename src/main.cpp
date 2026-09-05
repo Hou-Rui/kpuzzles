@@ -7,6 +7,9 @@
 
 int main(int argc, char **argv)
 {
+    if (!qEnvironmentVariableIsSet("QT_QUICK_CONTROLS_STYLE"))
+        qputenv("QT_QUICK_CONTROLS_STYLE", "org.kde.desktop");
+
     QGuiApplication application(argc, argv);
     application.setApplicationName(QStringLiteral("kpuzzles"));
     application.setApplicationDisplayName(QStringLiteral("K Puzzles"));

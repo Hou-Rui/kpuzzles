@@ -10,6 +10,8 @@
 #endif
 
 #include <QElapsedTimer>
+#include <QEvent>
+#include <QFile>
 #include <QFont>
 #include <QFontMetrics>
 #include <QGuiApplication>
@@ -17,10 +19,14 @@
 #include <QMouseEvent>
 #include <QPainter>
 #include <QPalette>
+#include <QQuickWindow>
 #include <QRandomGenerator>
+#include <QScreen>
 #include <QTimer>
+#include <QVariantMap>
 
 #include <algorithm>
+#include <cmath>
 #include <cstdarg>
 #include <cstdio>
 #include <cstring>
@@ -122,10 +128,41 @@ PuzzleView::PuzzleView(QQuickItem *parent)
         const qint64 elapsed = m_frontendState->clock.restart();
         midend_timer(m_midend, static_cast<float>(elapsed) / 1000.0F);
     });
+
+    connect(this, &QQuickItem::windowChanged, this,
+            [this](QQuickWindow *window) {
+                if (m_observedWindow) {
+                    m_observedWindow->removeEventFilter(this);
+                    QObject::disconnect(m_screenChangedConnection);
+                }
+
+                m_observedWindow = window;
+                if (m_observedWindow) {
+                    m_observedWindow->installEventFilter(this);
+                    m_screenChangedConnection = connect(
+                        m_observedWindow, &QWindow::screenChanged, this,
+                        [this](QScreen *) { rebuildImage(); });
+                }
+                rebuildImage();
+            });
+
+    // QML/Kirigami can react to a palette change while this page remains
+    // alive. Re-query the puzzle colours and redraw so a live light/dark
+    // theme switch does not leave the QImage in the old colour scheme.
+    if (auto *application = qobject_cast<QGuiApplication *>(
+            QCoreApplication::instance()))
+        application->installEventFilter(this);
 }
 
 PuzzleView::~PuzzleView()
 {
+    if (m_observedWindow) {
+        m_observedWindow->removeEventFilter(this);
+        QObject::disconnect(m_screenChangedConnection);
+    }
+    if (auto *application = qobject_cast<QGuiApplication *>(
+            QCoreApplication::instance()))
+        application->removeEventFilter(this);
     clearGame();
     delete m_frontendState;
     m_frontendState = nullptr;
@@ -162,21 +199,58 @@ void PuzzleView::setGameName(const QString &name)
     loadGame(selectedGame);
 }
 
+void PuzzleView::refreshHelpText()
+{
+    QString help;
+    if (m_midend) {
+        const game *currentGame = midend_which_game(m_midend);
+        if (currentGame && currentGame->htmlhelp_topic) {
+            QFile file(QStringLiteral(":/puzzles-help/%1.html").arg(
+                QString::fromLatin1(currentGame->htmlhelp_topic)));
+            if (file.open(QIODevice::ReadOnly)) {
+                help = QString::fromUtf8(file.readAll());
+                const qsizetype firstLine = help.indexOf(QLatin1Char('\n'));
+                if (firstLine >= 0)
+                    help = help.mid(firstLine + 1).trimmed();
+            }
+        }
+    }
+
+    const bool oldHelpAvailable = m_helpAvailable;
+    const QString oldHelpText = m_helpText;
+    m_helpAvailable = !help.isEmpty();
+    m_helpText = help;
+    if (oldHelpAvailable != m_helpAvailable)
+        emit helpAvailableChanged();
+    if (oldHelpText != m_helpText)
+        emit helpTextChanged();
+}
+
 void PuzzleView::clearGame()
 {
     if (!m_frontendState)
         return;
     m_frontendState->timer->stop();
     m_frontendState->clock.invalidate();
+    clearConfiguration();
 
     if (m_midend) {
         midend_free(m_midend);
         m_midend = nullptr;
     }
+    const bool oldHelpAvailable = m_helpAvailable;
+    const bool hadHelpText = !m_helpText.isEmpty();
+    m_helpAvailable = false;
+    m_helpText.clear();
+    if (oldHelpAvailable)
+        emit helpAvailableChanged();
+    if (hadHelpText)
+        emit helpTextChanged();
     m_image = {};
     m_colours.clear();
     m_puzzleWidth = 0;
     m_puzzleHeight = 0;
+    m_devicePixelRatio = 1.0;
     m_pressedButton = 0;
 
     const bool oldCanUndo = m_canUndo;
@@ -196,6 +270,7 @@ void PuzzleView::clearGame()
         emit statusTextChanged();
     }
     update();
+    refreshMenuData();
 }
 
 void PuzzleView::loadGame(const game *selectedGame)
@@ -211,6 +286,8 @@ void PuzzleView::loadGame(const game *selectedGame)
     refreshColours();
     resizePuzzle();
     refreshCapabilities();
+    refreshMenuData();
+    refreshHelpText();
 }
 
 void PuzzleView::refreshColours()
@@ -222,6 +299,186 @@ void PuzzleView::refreshColours()
     float *colours = midend_colours(m_midend, &count);
     m_colours = QVector<float>(colours, colours + count * 3);
     sfree(colours);
+}
+
+void PuzzleView::refreshMenuData()
+{
+    const bool oldCanConfigure = m_canConfigure;
+    const QVariantList oldPresets = m_presetEntries;
+
+    m_presetEntries.clear();
+    m_canConfigure = false;
+    if (m_midend) {
+        preset_menu *menu = midend_get_presets(m_midend, nullptr);
+        const int currentPreset = midend_which_preset(m_midend);
+        appendPresetEntries(menu, QString(), currentPreset);
+        m_canConfigure = midend_which_game(m_midend)->can_configure;
+    }
+
+    if (oldCanConfigure != m_canConfigure || oldPresets != m_presetEntries)
+        emit menuChanged();
+}
+
+void PuzzleView::appendPresetEntries(const preset_menu *menu,
+                                     const QString &prefix,
+                                     int currentPreset)
+{
+    if (!menu)
+        return;
+
+    for (int i = 0; i < menu->n_entries; ++i) {
+        const preset_menu_entry &entry = menu->entries[i];
+        const QString title = QString::fromUtf8(entry.title);
+        if (entry.params) {
+            const QString label = prefix.isEmpty()
+                ? title : prefix + QStringLiteral(" / ") + title;
+            QVariantMap item;
+            item.insert(QStringLiteral("id"), entry.id);
+            item.insert(QStringLiteral("title"), title);
+            item.insert(QStringLiteral("category"), prefix);
+            item.insert(QStringLiteral("label"), label);
+            item.insert(QStringLiteral("selected"), entry.id == currentPreset);
+            m_presetEntries.append(item);
+        } else {
+            const QString childPrefix = prefix.isEmpty()
+                ? title : prefix + QStringLiteral(" / ") + title;
+            appendPresetEntries(entry.submenu, childPrefix, currentPreset);
+        }
+    }
+}
+
+void PuzzleView::clearConfiguration()
+{
+    const bool hadConfiguration = m_pendingConfiguration ||
+        !m_configuration.isEmpty() || !m_configurationTitle.isEmpty() ||
+        !m_configurationError.isEmpty();
+    if (m_pendingConfiguration) {
+        free_cfg(m_pendingConfiguration);
+        m_pendingConfiguration = nullptr;
+    }
+    m_configuration.clear();
+    m_configurationTitle.clear();
+    m_configurationError.clear();
+    if (hadConfiguration) {
+        emit configurationChanged();
+        emit configurationTitleChanged();
+        emit configurationErrorChanged();
+    }
+}
+
+void PuzzleView::setConfigurationError(const QString &error)
+{
+    if (m_configurationError == error)
+        return;
+    m_configurationError = error;
+    emit configurationErrorChanged();
+}
+
+void PuzzleView::rebuildConfigurationModel()
+{
+    const QVariantList oldConfiguration = m_configuration;
+    m_configuration.clear();
+    if (!m_pendingConfiguration)
+        return;
+
+    for (config_item *item = m_pendingConfiguration;
+         item->type != C_END; ++item) {
+        QVariantMap row;
+        row.insert(QStringLiteral("name"),
+                   QString::fromUtf8(item->name ? item->name : ""));
+        row.insert(QStringLiteral("type"), item->type);
+
+        if (item->type == C_STRING) {
+            row.insert(QStringLiteral("value"),
+                       QString::fromUtf8(item->u.string.sval));
+        } else if (item->type == C_BOOLEAN) {
+            row.insert(QStringLiteral("value"), item->u.boolean.bval);
+        } else if (item->type == C_CHOICES) {
+            QVariantList choices;
+            const char separator = item->u.choices.choicenames[0];
+            const char *start = item->u.choices.choicenames + 1;
+            while (*start) {
+                const char *end = std::strchr(start, separator);
+                if (!end)
+                    end = start + std::strlen(start);
+                choices.append(QString::fromUtf8(start,
+                                                  end - start));
+                if (!*end)
+                    break;
+                start = end + 1;
+            }
+            row.insert(QStringLiteral("value"), item->u.choices.selected);
+            row.insert(QStringLiteral("selected"), item->u.choices.selected);
+            row.insert(QStringLiteral("choices"), choices);
+        }
+        m_configuration.append(row);
+    }
+
+    if (oldConfiguration != m_configuration)
+        emit configurationChanged();
+}
+
+void PuzzleView::beginConfiguration(int which)
+{
+    if (!m_midend || (which == CFG_SETTINGS && !m_canConfigure))
+        return;
+
+    clearConfiguration();
+    char *title = nullptr;
+    m_pendingConfiguration = midend_get_config(m_midend, which, &title);
+    m_configurationKind = which;
+    if (title) {
+        m_configurationTitle = QString::fromUtf8(title);
+        sfree(title);
+    }
+    setConfigurationError(QString());
+    rebuildConfigurationModel();
+    emit configurationTitleChanged();
+}
+
+void PuzzleView::setConfigurationValue(int index, const QVariant &value)
+{
+    if (!m_pendingConfiguration || index < 0)
+        return;
+
+    config_item *item = m_pendingConfiguration;
+    for (int current = 0; current < index && item->type != C_END;
+         ++current, ++item) {
+    }
+    if (item->type == C_END)
+        return;
+
+    switch (item->type) {
+    case C_STRING: {
+        const QByteArray encoded = value.toString().toUtf8();
+        sfree(item->u.string.sval);
+        item->u.string.sval = dupstr(encoded.constData());
+        break;
+    }
+    case C_BOOLEAN:
+        item->u.boolean.bval = value.toBool();
+        break;
+    case C_CHOICES: {
+        int optionCount = 0;
+        const char separator = item->u.choices.choicenames[0];
+        const char *start = item->u.choices.choicenames + 1;
+        while (*start) {
+            ++optionCount;
+            const char *end = std::strchr(start, separator);
+            if (!end)
+                break;
+            start = end + 1;
+        }
+        if (optionCount > 0)
+            item->u.choices.selected = std::clamp(
+                value.toInt(), 0, optionCount - 1);
+        break;
+    }
+    default:
+        return;
+    }
+
+    rebuildConfigurationModel();
 }
 
 void PuzzleView::resizePuzzle()
@@ -237,10 +494,44 @@ void PuzzleView::resizePuzzle()
 
     m_puzzleWidth = puzzleWidth;
     m_puzzleHeight = puzzleHeight;
-    m_image = QImage(m_puzzleWidth, m_puzzleHeight,
+    rebuildImage();
+}
+
+qreal PuzzleView::devicePixelRatio() const
+{
+    if (m_observedWindow) {
+        const qreal dpr = m_observedWindow->devicePixelRatio();
+        return dpr > 0.0 ? dpr : 1.0;
+    }
+    if (auto *screen = QGuiApplication::primaryScreen()) {
+        const qreal dpr = screen->devicePixelRatio();
+        return dpr > 0.0 ? dpr : 1.0;
+    }
+    return 1.0;
+}
+
+void PuzzleView::rebuildImage()
+{
+    if (!m_midend || m_puzzleWidth <= 0 || m_puzzleHeight <= 0)
+        return;
+
+    m_devicePixelRatio = devicePixelRatio();
+    const qreal logicalWidth = m_puzzleWidth * m_renderScale;
+    const qreal logicalHeight = m_puzzleHeight * m_renderScale;
+    const int pixelWidth = std::max(1, static_cast<int>(
+        std::ceil(logicalWidth * m_devicePixelRatio)));
+    const int pixelHeight = std::max(1, static_cast<int>(
+        std::ceil(logicalHeight * m_devicePixelRatio)));
+
+    m_image = QImage(pixelWidth, pixelHeight,
                      QImage::Format_ARGB32_Premultiplied);
+    m_image.setDevicePixelRatio(m_devicePixelRatio);
     m_image.fill(Qt::transparent);
-    midend_redraw(m_midend);
+    // m_image has just been replaced, so the old drawstate no longer
+    // describes what is present on the backing surface. A plain
+    // midend_redraw() may skip unchanged tiles and leave this new image
+    // transparent. Recreate the drawstate and force a complete redraw.
+    midend_force_redraw(m_midend);
     update();
 }
 
@@ -306,6 +597,101 @@ void PuzzleView::solve()
         handleResult(midend_process_key(m_midend, 0, 0, UI_SOLVE));
 }
 
+void PuzzleView::setRenderScale(qreal scale)
+{
+    const qreal clampedScale = std::clamp(scale, qreal(0.25), qreal(4.0));
+    if (qFuzzyCompare(m_renderScale, clampedScale))
+        return;
+
+    m_renderScale = clampedScale;
+    emit renderScaleChanged();
+    rebuildImage();
+}
+
+void PuzzleView::zoomIn()
+{
+    setRenderScale(m_renderScale * 1.25);
+}
+
+void PuzzleView::zoomOut()
+{
+    setRenderScale(m_renderScale / 1.25);
+}
+
+void PuzzleView::resetZoom()
+{
+    setRenderScale(1.0);
+}
+
+void PuzzleView::selectPreset(int id)
+{
+    if (!m_midend)
+        return;
+
+    preset_menu *menu = midend_get_presets(m_midend, nullptr);
+    game_params *params = preset_menu_lookup_by_id(menu, id);
+    if (!params)
+        return;
+
+    cancelConfiguration();
+    midend_set_params(m_midend, params);
+    midend_new_game(m_midend);
+    refreshColours();
+    resizePuzzle();
+    refreshCapabilities();
+    refreshMenuData();
+}
+
+void PuzzleView::beginConfiguration()
+{
+    beginConfiguration(CFG_SETTINGS);
+}
+
+void PuzzleView::beginGameIdConfiguration()
+{
+    beginConfiguration(CFG_DESC);
+}
+
+void PuzzleView::beginRandomSeedConfiguration()
+{
+    beginConfiguration(CFG_SEED);
+}
+
+bool PuzzleView::applyConfiguration()
+{
+    if (!m_midend || !m_pendingConfiguration)
+        return false;
+
+    const char *error = midend_set_config(m_midend, m_configurationKind,
+                                          m_pendingConfiguration);
+    if (error) {
+        setConfigurationError(QString::fromUtf8(error));
+        return false;
+    }
+
+    free_cfg(m_pendingConfiguration);
+    m_pendingConfiguration = nullptr;
+    m_configuration.clear();
+    m_configurationTitle.clear();
+    setConfigurationError(QString());
+    emit configurationChanged();
+    emit configurationTitleChanged();
+
+    if (m_configurationKind != CFG_PREFS) {
+        midend_new_game(m_midend);
+        refreshColours();
+        resizePuzzle();
+        refreshCapabilities();
+        refreshMenuData();
+    }
+    return true;
+}
+
+void PuzzleView::cancelConfiguration()
+{
+    clearConfiguration();
+}
+
 void PuzzleView::backendActivateTimer()
 {
     if (m_frontendState && !m_frontendState->timer->isActive()) {
@@ -324,12 +710,16 @@ void PuzzleView::backendDeactivateTimer()
 
 int PuzzleView::pointerX(const QPointF &position) const
 {
-    return qRound(position.x() - (width() - m_puzzleWidth) / 2.0);
+    const qreal logicalWidth = m_puzzleWidth * m_renderScale;
+    return qRound((position.x() - (width() - logicalWidth) / 2.0)
+                  / m_renderScale);
 }
 
 int PuzzleView::pointerY(const QPointF &position) const
 {
-    return qRound(position.y() - (height() - m_puzzleHeight) / 2.0);
+    const qreal logicalHeight = m_puzzleHeight * m_renderScale;
+    return qRound((position.y() - (height() - logicalHeight) / 2.0)
+                  / m_renderScale);
 }
 
 void PuzzleView::processPointer(const QPointF &position, int button)
@@ -430,14 +820,29 @@ void PuzzleView::keyPressEvent(QKeyEvent *event)
     }
 }
 
+bool PuzzleView::eventFilter(QObject *watched, QEvent *event)
+{
+    if (watched == QCoreApplication::instance() &&
+        event->type() == QEvent::ApplicationPaletteChange && m_midend) {
+        refreshColours();
+        midend_force_redraw(m_midend);
+        refreshCapabilities();
+    } else if (watched == m_observedWindow &&
+               event->type() == QEvent::DevicePixelRatioChange) {
+        rebuildImage();
+    }
+    return QQuickPaintedItem::eventFilter(watched, event);
+}
+
 void PuzzleView::paint(QPainter *painter)
 {
     painter->setRenderHint(QPainter::SmoothPixmapTransform, false);
     if (m_image.isNull())
         return;
 
-    const qreal x = (width() - m_image.width()) / 2.0;
-    const qreal y = (height() - m_image.height()) / 2.0;
+    const QSizeF logicalImageSize = m_image.deviceIndependentSize();
+    const qreal x = (width() - logicalImageSize.width()) / 2.0;
+    const qreal y = (height() - logicalImageSize.height()) / 2.0;
     painter->drawImage(QPointF(x, y), m_image);
 }
 
@@ -446,9 +851,114 @@ QColor PuzzleView::colourFor(const PuzzleView *view, int colour)
     const int offset = colour * 3;
     if (colour < 0 || offset + 2 >= view->m_colours.size())
         return Qt::black;
+
     return QColor::fromRgbF(view->m_colours[offset],
                             view->m_colours[offset + 1],
                             view->m_colours[offset + 2]);
+}
+
+QColor PuzzleView::foregroundColourFor(const PuzzleView *view, int colour,
+                                       const QColor &background)
+{
+    const QColor original = colourFor(view, colour);
+    if (!darkPalette() || colour == 0)
+        return original;
+    return lightenForDarkPalette(original, background);
+}
+
+QColor PuzzleView::canvasColourAt(const PuzzleView *view, qreal x, qreal y)
+{
+    if (!view->m_image.isNull()) {
+        const int pixelX = std::clamp(qRound(x * view->m_renderScale
+                                             * view->m_devicePixelRatio),
+                                      0, view->m_image.width() - 1);
+        const int pixelY = std::clamp(qRound(y * view->m_renderScale
+                                             * view->m_devicePixelRatio),
+                                      0, view->m_image.height() - 1);
+        const QColor sampled = view->m_image.pixelColor(pixelX, pixelY);
+        if (sampled.alpha() > 0)
+            return sampled;
+    }
+
+    if (view->m_colours.size() >= 3)
+        return QColor::fromRgbF(view->m_colours[0], view->m_colours[1],
+                                view->m_colours[2]);
+    return QGuiApplication::palette().color(QPalette::Base);
+}
+
+QColor PuzzleView::lightenForDarkPalette(const QColor &colour,
+                                         const QColor &background)
+{
+    // Preserve the colour's hue and saturation. Only its HSL lightness is
+    // changed, so a dark green becomes a light green rather than white or a
+    // different accent colour.
+    constexpr double targetContrast = 4.5;
+    const qreal originalLightness = colour.lightnessF();
+    const qreal originalSaturation = colour.hslSaturationF();
+    const qreal hue = colour.hslHueF();
+    // Neutral foreground colours are the puzzle collection's usual ink for
+    // grids and outlines. A contrast-only adjustment often stops at medium
+    // grey, so make those colours visibly closer to white while preserving
+    // their hue and saturation.
+    const qreal minimumNeutralLightness = 0.88;
+    const qreal minimumLightness = originalSaturation < 0.16
+        ? minimumNeutralLightness : originalLightness;
+    if (contrastRatio(colour, background) >= targetContrast &&
+        originalLightness >= minimumLightness)
+        return colour;
+
+    qreal lower = std::max(originalLightness, minimumLightness);
+    qreal upper = 1.0;
+    QColor candidate = colour;
+
+    // Find the least-bright same-hue/same-saturation colour that reaches the
+    // readable contrast threshold. The contrast is monotonic in this range
+    // because the dark palette has a darker background.
+    candidate.setHslF(hue, originalSaturation, lower, colour.alphaF());
+    if (contrastRatio(candidate, background) >= targetContrast)
+        return candidate;
+
+    for (int iteration = 0; iteration < 16; ++iteration) {
+        const qreal lightness = (lower + upper) / 2.0;
+        candidate.setHslF(hue, originalSaturation, lightness,
+                          colour.alphaF());
+        if (contrastRatio(candidate, background) >= targetContrast)
+            upper = lightness;
+        else
+            lower = lightness;
+    }
+
+    candidate.setHslF(hue, originalSaturation, upper, colour.alphaF());
+    return contrastRatio(candidate, background) >= targetContrast
+        ? candidate : colour;
+}
+
+bool PuzzleView::darkPalette()
+{
+    const QPalette palette = QGuiApplication::palette();
+    const QColor background = palette.color(QPalette::Base);
+    const QColor foreground = palette.color(QPalette::Text);
+    return background.lightnessF() < foreground.lightnessF();
+}
+
+double PuzzleView::relativeLuminance(const QColor &colour)
+{
+    const auto linear = [](double value) {
+        return value <= 0.03928 ? value / 12.92
+                                : std::pow((value + 0.055) / 1.055, 2.4);
+    };
+    return 0.2126 * linear(colour.redF())
+         + 0.7152 * linear(colour.greenF())
+         + 0.0722 * linear(colour.blueF());
+}
+
+double PuzzleView::contrastRatio(const QColor &first, const QColor &second)
+{
+    const double firstLuminance = relativeLuminance(first);
+    const double secondLuminance = relativeLuminance(second);
+    const double lighter = std::max(firstLuminance, secondLuminance);
+    const double darker = std::min(firstLuminance, secondLuminance);
+    return (lighter + 0.05) / (darker + 0.05);
 }
 
 void PuzzleView::startDraw(drawing *drawing)
@@ -458,6 +968,7 @@ void PuzzleView::startDraw(drawing *drawing)
     delete state->painter;
     state->painter = new QPainter(&view->m_image);
     state->painter->setRenderHint(QPainter::Antialiasing, true);
+    state->painter->scale(view->m_renderScale, view->m_renderScale);
 }
 
 void PuzzleView::endDraw(drawing *drawing)
@@ -481,6 +992,10 @@ void PuzzleView::drawText(drawing *drawing, int x, int y, int fontType,
                                       : QStringLiteral("sans-serif"));
     font.setStyleHint(fontType == FONT_FIXED ? QFont::TypeWriter
                                              : QFont::SansSerif);
+    // Match the GTK frontend's bold Pango font and prefer pixel-aligned
+    // glyph hinting for the small clue and number fonts used by the games.
+    font.setBold(true);
+    font.setHintingPreference(QFont::PreferFullHinting);
     font.setPixelSize(std::max(1, fontSize));
     const QString string = QString::fromUtf8(text);
     const QFontMetrics metrics(font);
@@ -496,7 +1011,8 @@ void PuzzleView::drawText(drawing *drawing, int x, int y, int fontType,
         top = y - (metrics.ascent() + metrics.descent()) / 2;
 
     state->painter->setFont(font);
-    state->painter->setPen(colourFor(view, colour));
+    state->painter->setPen(foregroundColourFor(
+        view, colour, canvasColourAt(view, x, y)));
     state->painter->drawText(QPoint(left, top + metrics.ascent()), string);
 }
 
@@ -508,6 +1024,9 @@ void PuzzleView::drawRect(drawing *drawing, int x, int y, int width,
     if (!state->painter)
         return;
     state->painter->setPen(Qt::NoPen);
+    // A filled primitive may itself be a tile background. Do not alter its
+    // colour based on the outer canvas; foreground primitives are adjusted
+    // separately where their actual underlying colour is known.
     state->painter->setBrush(colourFor(view, colour));
     state->painter->drawRect(x, y, width, height);
 }
@@ -519,7 +1038,9 @@ void PuzzleView::drawLine(drawing *drawing, int x1, int y1, int x2, int y2,
     auto *state = stateFrom(reinterpret_cast<frontend *>(drawing->handle));
     if (!state->painter)
         return;
-    QPen pen(colourFor(view, colour));
+    QPen pen(foregroundColourFor(
+        view, colour, canvasColourAt(view, (x1 + x2) / 2.0,
+                                     (y1 + y2) / 2.0)));
     pen.setWidthF(1.0);
     state->painter->setPen(pen);
     state->painter->setBrush(Qt::NoBrush);
@@ -539,12 +1060,23 @@ void PuzzleView::drawPolygon(drawing *drawing, const int *coordinates,
     polygon.reserve(pointCount);
     for (int i = 0; i < pointCount; ++i)
         polygon.append(QPoint(coordinates[i * 2], coordinates[i * 2 + 1]));
-    if (fillColour >= 0)
-        state->painter->setBrush(colourFor(view, fillColour));
+    QColor fill;
+    if (fillColour >= 0) {
+        fill = colourFor(view, fillColour);
+        state->painter->setBrush(fill);
+    }
     else
         state->painter->setBrush(Qt::NoBrush);
-    if (outlineColour >= 0)
-        state->painter->setPen(QPen(colourFor(view, outlineColour)));
+    if (outlineColour >= 0) {
+        const QColor outline = outlineColour == fillColour && fill.isValid()
+            ? fill
+            : foregroundColourFor(view, outlineColour,
+                                  !fill.isValid()
+                                      ? canvasColourAt(view, coordinates[0],
+                                                       coordinates[1])
+                                      : fill);
+        state->painter->setPen(QPen(outline));
+    }
     else
         state->painter->setPen(Qt::NoPen);
     state->painter->drawPolygon(polygon);
@@ -557,12 +1089,22 @@ void PuzzleView::drawCircle(drawing *drawing, int centerX, int centerY,
     auto *state = stateFrom(reinterpret_cast<frontend *>(drawing->handle));
     if (!state->painter)
         return;
-    if (fillColour >= 0)
-        state->painter->setBrush(colourFor(view, fillColour));
+    QColor fill;
+    if (fillColour >= 0) {
+        fill = colourFor(view, fillColour);
+        state->painter->setBrush(fill);
+    }
     else
         state->painter->setBrush(Qt::NoBrush);
-    if (outlineColour >= 0)
-        state->painter->setPen(QPen(colourFor(view, outlineColour)));
+    if (outlineColour >= 0) {
+        const QColor outline = outlineColour == fillColour && fill.isValid()
+            ? fill
+            : foregroundColourFor(view, outlineColour,
+                                  !fill.isValid()
+                                      ? canvasColourAt(view, centerX, centerY)
+                                      : fill);
+        state->painter->setPen(QPen(outline));
+    }
     else
         state->painter->setPen(Qt::NoPen);
     state->painter->drawEllipse(QPointF(centerX + 0.5, centerY + 0.5),
@@ -618,8 +1160,16 @@ void PuzzleView::blitterSave(drawing *drawing, blitter *blitter, int x, int y)
 {
     auto *view = viewFrom(drawing);
     if (!view->m_image.isNull())
-        blitter->image = view->m_image.copy(x, y, blitter->width,
-                                            blitter->height);
+        blitter->image = view->m_image.copy(
+            qRound(x * view->m_renderScale * view->m_devicePixelRatio),
+            qRound(y * view->m_renderScale * view->m_devicePixelRatio),
+            std::max(1, qRound(blitter->width * view->m_renderScale
+                               * view->m_devicePixelRatio)),
+            std::max(1, qRound(blitter->height * view->m_renderScale
+                               * view->m_devicePixelRatio)));
+    if (!blitter->image.isNull())
+        blitter->image.setDevicePixelRatio(view->m_devicePixelRatio
+                                           * view->m_renderScale);
 }
 
 void PuzzleView::blitterLoad(drawing *drawing, blitter *blitter, int x, int y)
@@ -642,7 +1192,9 @@ void PuzzleView::drawThickLine(drawing *drawing, float thickness, float x1,
     auto *state = stateFrom(reinterpret_cast<frontend *>(drawing->handle));
     if (!state->painter)
         return;
-    QPen pen(colourFor(view, colour));
+    QPen pen(foregroundColourFor(
+        view, colour, canvasColourAt(view, (x1 + x2) / 2.0,
+                                     (y1 + y2) / 2.0)));
     pen.setWidthF(std::max(1.0F, thickness));
     pen.setCapStyle(Qt::SquareCap);
     state->painter->setPen(pen);
