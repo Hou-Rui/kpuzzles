@@ -4,7 +4,7 @@ import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
 
 Kirigami.ApplicationWindow {
-    id: applicationWindow
+    id: root
 
     width: 960
     height: 720
@@ -18,7 +18,7 @@ Kirigami.ApplicationWindow {
 
         HomePage {
             onOpenPuzzle: function(name, displayName) {
-                applicationWindow.pageStack.push(puzzlePage, {
+                root.pageStack.push(puzzlePage, {
                     gameName: name,
                     displayName: displayName
                 })
@@ -30,7 +30,7 @@ Kirigami.ApplicationWindow {
         id: puzzlePage
 
         PuzzlePage {
-            onLeavePuzzle: applicationWindow.pageStack.pop()
+            onLeavePuzzle: root.pageStack.pop()
         }
     }
 }
