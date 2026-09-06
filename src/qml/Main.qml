@@ -1,6 +1,6 @@
+pragma ComponentBehavior: Bound
+
 import QtQuick
-import QtQuick.Controls as Controls
-import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
 
 Kirigami.ApplicationWindow {
@@ -13,21 +13,22 @@ Kirigami.ApplicationWindow {
 
     pageStack.initialPage: homePage
 
-    Component {
+    HomePage {
         id: homePage
+        visible: false
 
-        HomePage {
-            onOpenPuzzle: function(name, displayName) {
-                root.pageStack.push(puzzlePage, {
-                    gameName: name,
-                    displayName: displayName
-                })
-            }
+        onOpenPuzzle: function(name, displayName) {
+            const page = puzzlePageComponent.createObject(root.contentItem, {
+                gameName: name,
+                displayName: displayName
+            })
+            if (page)
+                root.pageStack.push(page)
         }
     }
 
     Component {
-        id: puzzlePage
+        id: puzzlePageComponent
 
         PuzzlePage {
             onLeavePuzzle: root.pageStack.pop()
