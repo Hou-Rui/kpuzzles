@@ -3,8 +3,8 @@
 ## Project Structure & Module Organization
 
 `src/` contains the C++/Qt integration layer: the puzzle catalog, the
-`QQuickPaintedItem` view, and the application entry point. The QML UI lives at
-the repository root (`Main.qml`, `HomePage.qml`, and `PuzzlePage.qml`).
+`QQuickPaintedItem` view, and the application entry point. The QML UI lives in
+`src/qml/` (`Main.qml`, `HomePage.qml`, and `PuzzlePage.qml`).
 
 `puzzles/` is the Simon Tatham's Puzzles git submodule. Its C puzzle engines,
 HTML help, icons, and platform-specific frontends are kept upstream-style;

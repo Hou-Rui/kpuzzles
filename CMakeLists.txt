@@ -150,9 +150,9 @@ qt_add_qml_module(kpuzzles
     URI kpuzzles
     VERSION 1.0
     QML_FILES
-        Main.qml
-        HomePage.qml
-        PuzzlePage.qml
+        src/qml/Main.qml
+        src/qml/HomePage.qml
+        src/qml/PuzzlePage.qml
 )
 
 target_link_libraries(kpuzzles PRIVATE
