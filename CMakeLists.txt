@@ -119,6 +119,27 @@ foreach(game_name IN LISTS PUZZLES_GAME_NAMES)
     file(APPEND "${GENERATED_GAMES_HEADER}" "GAME(${game_name})\n")
 endforeach()
 
+# The dark palette is maintained using symbolic COL_* names. Resolve those
+# names against the bundled puzzle sources at configure time so an upstream
+# enum change cannot silently apply an override to the wrong colour.
+include(cmake/GenerateNightColours.cmake)
+set(NIGHT_COLOURS_DATA "${CMAKE_CURRENT_SOURCE_DIR}/src/night-colours.txt")
+set(GENERATED_NIGHT_COLOURS_HEADER
+    "${GENERATED_PUZZLES_INCLUDE}/generated-night-colours.h")
+generate_night_colours(
+    "${GENERATED_NIGHT_COLOURS_HEADER}"
+    "${NIGHT_COLOURS_DATA}"
+    "${PUZZLES_DIR}"
+)
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
+    "${NIGHT_COLOURS_DATA}"
+)
+foreach(game_source IN LISTS PUZZLES_GAME_SOURCES)
+    set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
+        "${PUZZLES_DIR}/${game_source}"
+    )
+endforeach()
+
 set(PUZZLES_SOURCES)
 foreach(source IN LISTS PUZZLES_CORE_SOURCES PUZZLES_GAME_SOURCES)
     list(APPEND PUZZLES_SOURCES "${PUZZLES_DIR}/${source}")
@@ -131,6 +152,8 @@ qt_add_executable(kpuzzles
     src/PuzzleCatalog.h
     src/PuzzleView.cpp
     src/PuzzleView.h
+    src/night-colours.txt
+    ${GENERATED_NIGHT_COLOURS_HEADER}
     ${PUZZLES_SOURCES}
 )
 

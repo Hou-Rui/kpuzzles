@@ -1,4 +1,5 @@
 #include "PuzzleView.h"
+#include "generated-night-colours.h"
 
 // puzzles.h intentionally provides simple min/max macros for its C sources;
 // remove them before including C++ standard-library headers.
@@ -26,10 +27,29 @@
 #include <QVariantMap>
 
 #include <algorithm>
-#include <cmath>
 #include <cstdarg>
 #include <cstdio>
 #include <cstring>
+
+namespace {
+bool darkPalette()
+{
+    if (!QGuiApplication::instance())
+        return false;
+    const QPalette palette = QGuiApplication::palette();
+    return palette.color(QPalette::Base).lightnessF()
+         < palette.color(QPalette::Text).lightnessF();
+}
+
+void setPaletteColour(QVector<float> &colours, int index,
+                      const QColor &colour)
+{
+    const int offset = index * 3;
+    colours[offset] = static_cast<float>(colour.redF());
+    colours[offset + 1] = static_cast<float>(colour.greenF());
+    colours[offset + 2] = static_cast<float>(colour.blueF());
+}
+}
 
 struct PuzzleView::FrontendState {
     PuzzleView *view = nullptr;
@@ -68,13 +88,13 @@ extern "C" void get_random_seed(void **randomSeed, int *randomSeedSize)
 
 extern "C" void frontend_default_colour(frontend *, float *output)
 {
-    QColor background(242, 242, 242);
-    if (QGuiApplication::instance())
-        background = QGuiApplication::palette().color(QPalette::Base);
-
-    output[0] = static_cast<float>(background.redF());
-    output[1] = static_cast<float>(background.greenF());
-    output[2] = static_cast<float>(background.blueF());
+    // Keep the engine's derived colours stable in both themes. Some games
+    // calculate most of their palette as fractions of this background; using
+    // the real dark background would collapse those colours towards black.
+    constexpr float derivedBackground = 0.8F;
+    output[0] = derivedBackground;
+    output[1] = derivedBackground;
+    output[2] = derivedBackground;
 }
 
 extern "C" void activate_timer(frontend *frontend)
@@ -299,6 +319,27 @@ void PuzzleView::refreshColours()
     float *colours = midend_colours(m_midend, &count);
     m_colours = QVector<float>(colours, colours + count * 3);
     sfree(colours);
+
+    if (!darkPalette() || count <= 0)
+        return;
+
+    // The first colour is the outer canvas background for every game,
+    // including Untangle (whose playable area uses its second colour).
+    setPaletteColour(m_colours, 0,
+                     QGuiApplication::palette().color(QPalette::Base));
+
+    const game *currentGame = midend_which_game(m_midend);
+    const char *sourceName = currentGame ? currentGame->htmlhelp_topic : nullptr;
+    if (!sourceName)
+        return;
+
+    for (const NightColourOverride &override : nightColourOverrides) {
+        if (override.index < count &&
+            std::strcmp(sourceName, override.game) == 0) {
+            setPaletteColour(m_colours, override.index,
+                             QColor::fromRgb(override.rgb));
+        }
+    }
 }
 
 void PuzzleView::refreshMenuData()
@@ -825,6 +866,8 @@ bool PuzzleView::eventFilter(QObject *watched, QEvent *event)
     if (watched == QCoreApplication::instance() &&
         event->type() == QEvent::ApplicationPaletteChange && m_midend) {
         refreshColours();
+        if (!m_image.isNull())
+            m_image.fill(colourFor(this, 0));
         midend_force_redraw(m_midend);
         refreshCapabilities();
     } else if (watched == m_observedWindow &&
@@ -855,110 +898,6 @@ QColor PuzzleView::colourFor(const PuzzleView *view, int colour)
     return QColor::fromRgbF(view->m_colours[offset],
                             view->m_colours[offset + 1],
                             view->m_colours[offset + 2]);
-}
-
-QColor PuzzleView::foregroundColourFor(const PuzzleView *view, int colour,
-                                       const QColor &background)
-{
-    const QColor original = colourFor(view, colour);
-    if (!darkPalette() || colour == 0)
-        return original;
-    return lightenForDarkPalette(original, background);
-}
-
-QColor PuzzleView::canvasColourAt(const PuzzleView *view, qreal x, qreal y)
-{
-    if (!view->m_image.isNull()) {
-        const int pixelX = std::clamp(qRound(x * view->m_renderScale
-                                             * view->m_devicePixelRatio),
-                                      0, view->m_image.width() - 1);
-        const int pixelY = std::clamp(qRound(y * view->m_renderScale
-                                             * view->m_devicePixelRatio),
-                                      0, view->m_image.height() - 1);
-        const QColor sampled = view->m_image.pixelColor(pixelX, pixelY);
-        if (sampled.alpha() > 0)
-            return sampled;
-    }
-
-    if (view->m_colours.size() >= 3)
-        return QColor::fromRgbF(view->m_colours[0], view->m_colours[1],
-                                view->m_colours[2]);
-    return QGuiApplication::palette().color(QPalette::Base);
-}
-
-QColor PuzzleView::lightenForDarkPalette(const QColor &colour,
-                                         const QColor &background)
-{
-    // Preserve the colour's hue and saturation. Only its HSL lightness is
-    // changed, so a dark green becomes a light green rather than white or a
-    // different accent colour.
-    constexpr double targetContrast = 4.5;
-    const qreal originalLightness = colour.lightnessF();
-    const qreal originalSaturation = colour.hslSaturationF();
-    const qreal hue = colour.hslHueF();
-    // Neutral foreground colours are the puzzle collection's usual ink for
-    // grids and outlines. A contrast-only adjustment often stops at medium
-    // grey, so make those colours visibly closer to white while preserving
-    // their hue and saturation.
-    const qreal minimumNeutralLightness = 0.88;
-    const qreal minimumLightness = originalSaturation < 0.16
-        ? minimumNeutralLightness : originalLightness;
-    if (contrastRatio(colour, background) >= targetContrast &&
-        originalLightness >= minimumLightness)
-        return colour;
-
-    qreal lower = std::max(originalLightness, minimumLightness);
-    qreal upper = 1.0;
-    QColor candidate = colour;
-
-    // Find the least-bright same-hue/same-saturation colour that reaches the
-    // readable contrast threshold. The contrast is monotonic in this range
-    // because the dark palette has a darker background.
-    candidate.setHslF(hue, originalSaturation, lower, colour.alphaF());
-    if (contrastRatio(candidate, background) >= targetContrast)
-        return candidate;
-
-    for (int iteration = 0; iteration < 16; ++iteration) {
-        const qreal lightness = (lower + upper) / 2.0;
-        candidate.setHslF(hue, originalSaturation, lightness,
-                          colour.alphaF());
-        if (contrastRatio(candidate, background) >= targetContrast)
-            upper = lightness;
-        else
-            lower = lightness;
-    }
-
-    candidate.setHslF(hue, originalSaturation, upper, colour.alphaF());
-    return contrastRatio(candidate, background) >= targetContrast
-        ? candidate : colour;
-}
-
-bool PuzzleView::darkPalette()
-{
-    const QPalette palette = QGuiApplication::palette();
-    const QColor background = palette.color(QPalette::Base);
-    const QColor foreground = palette.color(QPalette::Text);
-    return background.lightnessF() < foreground.lightnessF();
-}
-
-double PuzzleView::relativeLuminance(const QColor &colour)
-{
-    const auto linear = [](double value) {
-        return value <= 0.03928 ? value / 12.92
-                                : std::pow((value + 0.055) / 1.055, 2.4);
-    };
-    return 0.2126 * linear(colour.redF())
-         + 0.7152 * linear(colour.greenF())
-         + 0.0722 * linear(colour.blueF());
-}
-
-double PuzzleView::contrastRatio(const QColor &first, const QColor &second)
-{
-    const double firstLuminance = relativeLuminance(first);
-    const double secondLuminance = relativeLuminance(second);
-    const double lighter = std::max(firstLuminance, secondLuminance);
-    const double darker = std::min(firstLuminance, secondLuminance);
-    return (lighter + 0.05) / (darker + 0.05);
 }
 
 void PuzzleView::startDraw(drawing *drawing)
@@ -1011,8 +950,7 @@ void PuzzleView::drawText(drawing *drawing, int x, int y, int fontType,
         top = y - (metrics.ascent() + metrics.descent()) / 2;
 
     state->painter->setFont(font);
-    state->painter->setPen(foregroundColourFor(
-        view, colour, canvasColourAt(view, x, y)));
+    state->painter->setPen(colourFor(view, colour));
     state->painter->drawText(QPoint(left, top + metrics.ascent()), string);
 }
 
@@ -1024,9 +962,6 @@ void PuzzleView::drawRect(drawing *drawing, int x, int y, int width,
     if (!state->painter)
         return;
     state->painter->setPen(Qt::NoPen);
-    // A filled primitive may itself be a tile background. Do not alter its
-    // colour based on the outer canvas; foreground primitives are adjusted
-    // separately where their actual underlying colour is known.
     state->painter->setBrush(colourFor(view, colour));
     state->painter->drawRect(x, y, width, height);
 }
@@ -1038,9 +973,7 @@ void PuzzleView::drawLine(drawing *drawing, int x1, int y1, int x2, int y2,
     auto *state = stateFrom(reinterpret_cast<frontend *>(drawing->handle));
     if (!state->painter)
         return;
-    QPen pen(foregroundColourFor(
-        view, colour, canvasColourAt(view, (x1 + x2) / 2.0,
-                                     (y1 + y2) / 2.0)));
+    QPen pen(colourFor(view, colour));
     pen.setWidthF(1.0);
     state->painter->setPen(pen);
     state->painter->setBrush(Qt::NoBrush);
@@ -1069,12 +1002,7 @@ void PuzzleView::drawPolygon(drawing *drawing, const int *coordinates,
         state->painter->setBrush(Qt::NoBrush);
     if (outlineColour >= 0) {
         const QColor outline = outlineColour == fillColour && fill.isValid()
-            ? fill
-            : foregroundColourFor(view, outlineColour,
-                                  !fill.isValid()
-                                      ? canvasColourAt(view, coordinates[0],
-                                                       coordinates[1])
-                                      : fill);
+            ? fill : colourFor(view, outlineColour);
         state->painter->setPen(QPen(outline));
     }
     else
@@ -1098,11 +1026,7 @@ void PuzzleView::drawCircle(drawing *drawing, int centerX, int centerY,
         state->painter->setBrush(Qt::NoBrush);
     if (outlineColour >= 0) {
         const QColor outline = outlineColour == fillColour && fill.isValid()
-            ? fill
-            : foregroundColourFor(view, outlineColour,
-                                  !fill.isValid()
-                                      ? canvasColourAt(view, centerX, centerY)
-                                      : fill);
+            ? fill : colourFor(view, outlineColour);
         state->painter->setPen(QPen(outline));
     }
     else
@@ -1192,9 +1116,7 @@ void PuzzleView::drawThickLine(drawing *drawing, float thickness, float x1,
     auto *state = stateFrom(reinterpret_cast<frontend *>(drawing->handle));
     if (!state->painter)
         return;
-    QPen pen(foregroundColourFor(
-        view, colour, canvasColourAt(view, (x1 + x2) / 2.0,
-                                     (y1 + y2) / 2.0)));
+    QPen pen(colourFor(view, colour));
     pen.setWidthF(std::max(1.0F, thickness));
     pen.setCapStyle(Qt::SquareCap);
     state->painter->setPen(pen);

@@ -4,7 +4,9 @@
 
 `src/` contains the C++/Qt integration layer: the puzzle catalog, the
 `QQuickPaintedItem` view, and the application entry point. The QML UI lives in
-`src/qml/` (`Main.qml`, `HomePage.qml`, and `PuzzlePage.qml`).
+`src/qml/` (`Main.qml`, `HomePage.qml`, and `PuzzlePage.qml`). Dark-mode game
+overrides live in `src/night-colours.txt`; `cmake/GenerateNightColours.cmake`
+resolves their symbolic `COL_*` roles against the puzzle sources.
 
 `puzzles/` is the Simon Tatham's Puzzles git submodule. Its C puzzle engines,
 HTML help, icons, and platform-specific frontends are kept upstream-style;

@@ -126,14 +126,6 @@ private:
     void handleResult(int result);
 
     static QColor colourFor(const PuzzleView *view, int colour);
-    static QColor foregroundColourFor(const PuzzleView *view, int colour,
-                                      const QColor &background);
-    static QColor canvasColourAt(const PuzzleView *view, qreal x, qreal y);
-    static QColor lightenForDarkPalette(const QColor &colour,
-                                        const QColor &background);
-    static bool darkPalette();
-    static double relativeLuminance(const QColor &colour);
-    static double contrastRatio(const QColor &first, const QColor &second);
     static PuzzleView *viewFrom(drawing *drawing);
 
     static void drawText(drawing *, int, int, int, int, int, int, const char *);
