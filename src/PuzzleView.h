@@ -29,7 +29,6 @@ class PuzzleView : public QQuickPaintedItem
     Q_PROPERTY(bool canRedo READ canRedo NOTIFY capabilitiesChanged)
     Q_PROPERTY(bool canSolve READ canSolve NOTIFY capabilitiesChanged)
     Q_PROPERTY(bool solved READ solved NOTIFY solvedChanged)
-    Q_PROPERTY(qreal renderScale READ renderScale WRITE setRenderScale NOTIFY renderScaleChanged)
     Q_PROPERTY(QVariantList presetEntries READ presetEntries NOTIFY menuChanged)
     Q_PROPERTY(bool canConfigure READ canConfigure NOTIFY menuChanged)
     Q_PROPERTY(QVariantList configuration READ configuration NOTIFY configurationChanged)
@@ -51,8 +50,6 @@ public:
     bool canRedo() const { return m_canRedo; }
     bool canSolve() const { return m_canSolve; }
     bool solved() const { return m_solved; }
-    qreal renderScale() const { return m_renderScale; }
-    void setRenderScale(qreal scale);
     QVariantList presetEntries() const { return m_presetEntries; }
     bool canConfigure() const { return m_canConfigure; }
     QVariantList configuration() const { return m_configuration; }
@@ -64,9 +61,6 @@ public:
     Q_INVOKABLE void undo();
     Q_INVOKABLE void redo();
     Q_INVOKABLE void solve();
-    Q_INVOKABLE void zoomIn();
-    Q_INVOKABLE void zoomOut();
-    Q_INVOKABLE void resetZoom();
     Q_INVOKABLE void selectPreset(int id);
     Q_INVOKABLE void beginConfiguration();
     Q_INVOKABLE void beginGameIdConfiguration();
@@ -87,7 +81,6 @@ signals:
     void statusTextChanged();
     void capabilitiesChanged();
     void solvedChanged();
-    void renderScaleChanged();
     void menuChanged();
     void configurationChanged();
     void configurationTitleChanged();
@@ -166,7 +159,6 @@ private:
     QString m_configurationError;
     int m_configurationKind = CFG_SETTINGS;
     config_item *m_pendingConfiguration = nullptr;
-    qreal m_renderScale = 1.0;
     qreal m_devicePixelRatio = 1.0;
     QQuickWindow *m_observedWindow = nullptr;
     QMetaObject::Connection m_screenChangedConnection;

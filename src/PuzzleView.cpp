@@ -531,7 +531,10 @@ void PuzzleView::resizePuzzle()
     int availableHeight = std::max(1, qRound(height()));
     int puzzleWidth = availableWidth;
     int puzzleHeight = availableHeight;
-    midend_size(m_midend, &puzzleWidth, &puzzleHeight, false, 1.0);
+    // The item occupies the page space left after the status row and toolbar.
+    // Treat that size as a user-requested drawing area so the midend chooses
+    // the largest tile size that keeps the whole puzzle inside it.
+    midend_size(m_midend, &puzzleWidth, &puzzleHeight, true, 1.0);
 
     m_puzzleWidth = puzzleWidth;
     m_puzzleHeight = puzzleHeight;
@@ -557,12 +560,10 @@ void PuzzleView::rebuildImage()
         return;
 
     m_devicePixelRatio = devicePixelRatio();
-    const qreal logicalWidth = m_puzzleWidth * m_renderScale;
-    const qreal logicalHeight = m_puzzleHeight * m_renderScale;
     const int pixelWidth = std::max(1, static_cast<int>(
-        std::ceil(logicalWidth * m_devicePixelRatio)));
+        std::ceil(m_puzzleWidth * m_devicePixelRatio)));
     const int pixelHeight = std::max(1, static_cast<int>(
-        std::ceil(logicalHeight * m_devicePixelRatio)));
+        std::ceil(m_puzzleHeight * m_devicePixelRatio)));
 
     m_image = QImage(pixelWidth, pixelHeight,
                      QImage::Format_ARGB32_Premultiplied);
@@ -636,32 +637,6 @@ void PuzzleView::solve()
 {
     if (m_midend)
         handleResult(midend_process_key(m_midend, 0, 0, UI_SOLVE));
-}
-
-void PuzzleView::setRenderScale(qreal scale)
-{
-    const qreal clampedScale = std::clamp(scale, qreal(0.25), qreal(4.0));
-    if (qFuzzyCompare(m_renderScale, clampedScale))
-        return;
-
-    m_renderScale = clampedScale;
-    emit renderScaleChanged();
-    rebuildImage();
-}
-
-void PuzzleView::zoomIn()
-{
-    setRenderScale(m_renderScale * 1.25);
-}
-
-void PuzzleView::zoomOut()
-{
-    setRenderScale(m_renderScale / 1.25);
-}
-
-void PuzzleView::resetZoom()
-{
-    setRenderScale(1.0);
 }
 
 void PuzzleView::selectPreset(int id)
@@ -751,16 +726,12 @@ void PuzzleView::backendDeactivateTimer()
 
 int PuzzleView::pointerX(const QPointF &position) const
 {
-    const qreal logicalWidth = m_puzzleWidth * m_renderScale;
-    return qRound((position.x() - (width() - logicalWidth) / 2.0)
-                  / m_renderScale);
+    return qRound(position.x() - (width() - m_puzzleWidth) / 2.0);
 }
 
 int PuzzleView::pointerY(const QPointF &position) const
 {
-    const qreal logicalHeight = m_puzzleHeight * m_renderScale;
-    return qRound((position.y() - (height() - logicalHeight) / 2.0)
-                  / m_renderScale);
+    return qRound(position.y() - (height() - m_puzzleHeight) / 2.0);
 }
 
 void PuzzleView::processPointer(const QPointF &position, int button)
@@ -907,7 +878,6 @@ void PuzzleView::startDraw(drawing *drawing)
     delete state->painter;
     state->painter = new QPainter(&view->m_image);
     state->painter->setRenderHint(QPainter::Antialiasing, true);
-    state->painter->scale(view->m_renderScale, view->m_renderScale);
 }
 
 void PuzzleView::endDraw(drawing *drawing)
@@ -1085,15 +1055,12 @@ void PuzzleView::blitterSave(drawing *drawing, blitter *blitter, int x, int y)
     auto *view = viewFrom(drawing);
     if (!view->m_image.isNull())
         blitter->image = view->m_image.copy(
-            qRound(x * view->m_renderScale * view->m_devicePixelRatio),
-            qRound(y * view->m_renderScale * view->m_devicePixelRatio),
-            std::max(1, qRound(blitter->width * view->m_renderScale
-                               * view->m_devicePixelRatio)),
-            std::max(1, qRound(blitter->height * view->m_renderScale
-                               * view->m_devicePixelRatio)));
+            qRound(x * view->m_devicePixelRatio),
+            qRound(y * view->m_devicePixelRatio),
+            std::max(1, qRound(blitter->width * view->m_devicePixelRatio)),
+            std::max(1, qRound(blitter->height * view->m_devicePixelRatio)));
     if (!blitter->image.isNull())
-        blitter->image.setDevicePixelRatio(view->m_devicePixelRatio
-                                           * view->m_renderScale);
+        blitter->image.setDevicePixelRatio(view->m_devicePixelRatio);
 }
 
 void PuzzleView::blitterLoad(drawing *drawing, blitter *blitter, int x, int y)

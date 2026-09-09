@@ -46,21 +46,6 @@ Kirigami.Page {
             icon.name: "help-contents"
             enabled: puzzleView.helpAvailable
             onTriggered: helpDialog.open()
-        },
-        Kirigami.Action {
-            text: qsTr("Zoom in")
-            icon.name: "zoom-in"
-            onTriggered: puzzleView.zoomIn()
-        },
-        Kirigami.Action {
-            text: qsTr("Zoom out")
-            icon.name: "zoom-out"
-            onTriggered: puzzleView.zoomOut()
-        },
-        Kirigami.Action {
-            text: qsTr("Reset zoom")
-            icon.name: "zoom-original"
-            onTriggered: puzzleView.resetZoom()
         }
     ]
 
