@@ -119,14 +119,17 @@ Kirigami.Page {
         onRejected: puzzleView.cancelConfiguration()
 
         contentItem: Flickable {
+            id: configurationFlickable
+
+            implicitWidth: 560
             implicitHeight: Math.min(configurationForm.implicitHeight, 520)
-            contentWidth: availableWidth
+            contentWidth: width
             contentHeight: configurationForm.implicitHeight
             clip: true
 
             ColumnLayout {
                 id: configurationForm
-                width: configurationDialog.width - Kirigami.Units.largeSpacing * 2
+                width: configurationFlickable.width
                 spacing: Kirigami.Units.smallSpacing
 
                 Controls.Label {
