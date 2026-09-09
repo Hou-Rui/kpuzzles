@@ -2,7 +2,7 @@ import QtQuick
 import QtQuick.Controls as Controls
 import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
-import kpuzzles 1.0
+import kpuzzles
 
 Kirigami.Page {
     id: root
@@ -49,41 +49,35 @@ Kirigami.Page {
         }
     ]
 
-    Controls.Dialog {
+    Kirigami.Dialog {
         id: helpDialog
         modal: true
         title: qsTr("How to play %1").arg(root.displayName)
-        width: Math.min(root.width - Kirigami.Units.largeSpacing * 2, 700)
-        standardButtons: Controls.Dialog.Close
+        padding: Kirigami.Units.largeSpacing
+        preferredWidth: 700
+        maximumWidth: 700
+        standardButtons: Kirigami.Dialog.Close
 
-        contentItem: Controls.ScrollView {
-            id: helpScroll
-            implicitWidth: 640
-            implicitHeight: Math.min(helpContent.implicitHeight, 520)
-            clip: true
-            contentWidth: availableWidth
-            contentHeight: helpContent.implicitHeight
-
-            Text {
-                id: helpContent
-                width: helpScroll.availableWidth
-                text: puzzleView.helpText
-                textFormat: Text.RichText
-                wrapMode: Text.WordWrap
-                color: Kirigami.Theme.textColor
-                renderType: Text.NativeRendering
-            }
+        Text {
+            id: helpContent
+            text: puzzleView.helpText
+            textFormat: Text.RichText
+            wrapMode: Text.WordWrap
+            color: Kirigami.Theme.textColor
+            renderType: Text.NativeRendering
         }
     }
 
-    Controls.Dialog {
+    Kirigami.Dialog {
         id: presetsDialog
         modal: true
         title: qsTr("Presets")
-        width: Math.min(root.width - Kirigami.Units.largeSpacing * 2, 620)
-        standardButtons: Controls.Dialog.Cancel
+        padding: 0
+        preferredWidth: 620
+        maximumWidth: 620
+        standardButtons: Kirigami.Dialog.Cancel
 
-        contentItem: ListView {
+        ListView {
             id: presetList
             implicitWidth: 560
             implicitHeight: Math.min(contentHeight, 520)
@@ -105,12 +99,14 @@ Kirigami.Page {
         }
     }
 
-    Controls.Dialog {
+    Kirigami.Dialog {
         id: configurationDialog
         modal: true
         title: puzzleView.configurationTitle
-        width: Math.min(root.width - Kirigami.Units.largeSpacing * 2, 620)
-        standardButtons: Controls.Dialog.Ok | Controls.Dialog.Cancel
+        padding: Kirigami.Units.largeSpacing
+        preferredWidth: 620
+        maximumWidth: 620
+        standardButtons: Kirigami.Dialog.Ok | Kirigami.Dialog.Cancel
 
         onAccepted: {
             if (!puzzleView.applyConfiguration())
@@ -118,67 +114,60 @@ Kirigami.Page {
         }
         onRejected: puzzleView.cancelConfiguration()
 
-        contentItem: Flickable {
-            id: configurationFlickable
-
+        ColumnLayout {
+            id: configurationForm
             implicitWidth: 560
-            implicitHeight: Math.min(configurationForm.implicitHeight, 520)
-            contentWidth: width
-            contentHeight: configurationForm.implicitHeight
-            clip: true
+            spacing: Kirigami.Units.smallSpacing
 
-            ColumnLayout {
-                id: configurationForm
-                width: configurationFlickable.width
-                spacing: Kirigami.Units.smallSpacing
+            Controls.Label {
+                Layout.fillWidth: true
+                visible: puzzleView.configurationError.length > 0
+                text: puzzleView.configurationError
+                color: Kirigami.Theme.negativeTextColor
+                wrapMode: Text.WordWrap
+            }
 
-                Controls.Label {
+            Repeater {
+                model: puzzleView.configuration
+
+                delegate: ColumnLayout {
+                    id: configurationEntry
+
+                    required property int index
+                    required property var modelData
                     Layout.fillWidth: true
-                    visible: puzzleView.configurationError.length > 0
-                    text: puzzleView.configurationError
-                    color: Kirigami.Theme.negativeTextColor
-                    wrapMode: Text.WordWrap
-                }
+                    spacing: Kirigami.Units.smallSpacing
 
-                Repeater {
-                    model: puzzleView.configuration
-
-                    delegate: ColumnLayout {
-                        required property var modelData
-                        property int configurationIndex: index
+                    Controls.Label {
                         Layout.fillWidth: true
-                        spacing: Kirigami.Units.smallSpacing
+                        text: configurationEntry.modelData.name
+                        wrapMode: Text.WordWrap
+                    }
 
-                        Controls.Label {
-                            Layout.fillWidth: true
-                            text: modelData.name
-                            wrapMode: Text.WordWrap
-                        }
+                    Controls.TextField {
+                        Layout.fillWidth: true
+                        visible: configurationEntry.modelData.type === 0
+                        text: configurationEntry.modelData.value
+                        onEditingFinished: puzzleView.setConfigurationValue(
+                            configurationEntry.index, text)
+                    }
 
-                        Controls.TextField {
-                            Layout.fillWidth: true
-                            visible: modelData.type === 0
-                            text: modelData.value
-                            onEditingFinished: puzzleView.setConfigurationValue(
-                                configurationIndex, text)
-                        }
+                    Controls.ComboBox {
+                        Layout.fillWidth: true
+                        visible: configurationEntry.modelData.type === 1
+                        model: configurationEntry.modelData.choices
+                        currentIndex: configurationEntry.modelData.type === 1
+                            ? configurationEntry.modelData.selected : -1
+                        onActivated: puzzleView.setConfigurationValue(
+                            configurationEntry.index, currentIndex)
+                    }
 
-                        Controls.ComboBox {
-                            Layout.fillWidth: true
-                            visible: modelData.type === 1
-                            model: modelData.choices
-                            currentIndex: modelData.selected
-                            onActivated: puzzleView.setConfigurationValue(
-                                configurationIndex, currentIndex)
-                        }
-
-                        Controls.CheckBox {
-                            Layout.fillWidth: true
-                            visible: modelData.type === 2
-                            checked: modelData.value
-                            onToggled: puzzleView.setConfigurationValue(
-                                configurationIndex, checked)
-                        }
+                    Controls.CheckBox {
+                        Layout.fillWidth: true
+                        visible: configurationEntry.modelData.type === 2
+                        checked: configurationEntry.modelData.value
+                        onToggled: puzzleView.setConfigurationValue(
+                            configurationEntry.index, checked)
                     }
                 }
             }
