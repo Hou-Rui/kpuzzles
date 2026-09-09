@@ -176,18 +176,7 @@ Kirigami.Page {
 
     ColumnLayout {
         anchors.fill: parent
-        spacing: Kirigami.Units.smallSpacing
-
-        Controls.Label {
-            Layout.fillWidth: true
-            text: puzzleView.statusText.length > 0
-                  ? puzzleView.statusText
-                  : qsTr("Use the mouse, touch, or keyboard to play.")
-            color: puzzleView.solved
-                   ? Kirigami.Theme.positiveTextColor
-                   : Kirigami.Theme.disabledTextColor
-            elide: Text.ElideRight
-        }
+        spacing: Kirigami.Units.largeSpacing
 
         Controls.ToolBar {
             Layout.fillWidth: true
@@ -226,7 +215,7 @@ Kirigami.Page {
                         }
                     }
                 ]
-                alignment: Qt.AlignLeft
+                alignment: Qt.AlignCenter
             }
         }
 
@@ -237,6 +226,18 @@ Kirigami.Page {
             gameName: root.gameName
             focus: true
             onQuitRequested: root.leavePuzzle()
+        }
+
+        Controls.Label {
+            Layout.fillWidth: true
+            text: puzzleView.statusText.length > 0
+                  ? puzzleView.statusText
+                  : qsTr("Use the mouse, touch, or keyboard to play.")
+            color: puzzleView.solved
+                   ? Kirigami.Theme.positiveTextColor
+                   : Kirigami.Theme.textColor
+            horizontalAlignment: Text.AlignHCenter
+            elide: Text.ElideRight
         }
     }
 }

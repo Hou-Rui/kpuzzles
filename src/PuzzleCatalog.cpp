@@ -82,7 +82,7 @@ QVariant PuzzleCatalog::data(const QModelIndex &index, int role) const
         if (visibleIndex++ != index.row())
             continue;
 
-        const Metadata *info = metadataFor(candidate->name);
+        const Metadata *info = metadataFor(candidate->htmlhelp_topic);
         const QString fallback = QString::fromLatin1(candidate->name)
                                      .replace('_', ' ');
         switch (role) {
@@ -127,6 +127,9 @@ void PuzzleCatalog::setFilterText(const QString &text)
 
 const PuzzleCatalog::Metadata *PuzzleCatalog::metadataFor(const char *name)
 {
+    if (!name)
+        return nullptr;
+
     for (const Metadata &entry : metadata) {
         if (std::strcmp(entry.name, name) == 0)
             return &entry;
@@ -139,7 +142,7 @@ bool PuzzleCatalog::matches(const game *candidate) const
     if (m_filterText.trimmed().isEmpty())
         return true;
 
-    const Metadata *info = metadataFor(candidate->name);
+    const Metadata *info = metadataFor(candidate->htmlhelp_topic);
     const QString haystack = QString::fromLatin1(candidate->name) + u' '
         + (info ? QString::fromLatin1(info->displayName) : QString()) + u' '
         + (info ? QString::fromLatin1(info->description) : QString());

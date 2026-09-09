@@ -7,7 +7,7 @@ Kirigami.ApplicationWindow {
     id: root
 
     width: 1080
-    height: 720
+    height: 750
     visible: true
     title: qsTr("Simon Tatham's Portable Puzzle Collection")
 

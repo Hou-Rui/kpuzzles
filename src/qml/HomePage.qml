@@ -47,19 +47,28 @@ Kirigami.ScrollablePage {
                     Layout.fillWidth: true
                     Layout.fillHeight: true
                     spacing: Kirigami.Units.smallSpacing
-
-                    Kirigami.Heading {
+                    
+                    RowLayout {
+                        Kirigami.Heading {
+                            Layout.fillWidth: true
+                            level: 2
+                            text: card.displayName
+                        }
+                        Controls.Label {
+                            text: card.description
+                            color: Kirigami.Theme.disabledTextColor
+                            elide: Text.ElideRight
+                        }
+                    }
+                    
+                    Kirigami.Separator {
                         Layout.fillWidth: true
-                        level: 3
-                        text: card.displayName
-                        elide: Text.ElideRight
                     }
 
                     Controls.Label {
                         Layout.fillWidth: true
-                        text: card.description
-                        color: Kirigami.Theme.disabledTextColor
-                        elide: Text.ElideRight
+                        text: card.objective
+                        wrapMode: Text.WordWrap
                     }
 
                     Item {
