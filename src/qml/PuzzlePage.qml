@@ -16,36 +16,77 @@ Kirigami.Page {
         Kirigami.Action {
             text: qsTr("New game")
             icon.name: "document-new"
+            displayHint: Kirigami.DisplayHint.KeepVisible
             onTriggered: puzzleView.newGame()
         },
         Kirigami.Action {
             text: qsTr("Restart")
             icon.name: "view-refresh"
+            displayHint: Kirigami.DisplayHint.KeepVisible
             onTriggered: puzzleView.restartGame()
+        },
+        Kirigami.Action {
+            text: qsTr("Presets")
+            icon.name: "view-list-details"
+            displayHint: Kirigami.DisplayHint.KeepVisible
+            enabled: puzzleView.presetEntries.length > 0
+            onTriggered: presetsDialog.open()
+        },
+        Kirigami.Action {
+            text: qsTr("Custom settings")
+            icon.name: "configure"
+            displayHint: Kirigami.DisplayHint.KeepVisible
+            enabled: puzzleView.canConfigure
+            onTriggered: {
+                puzzleView.beginConfiguration()
+                configurationDialog.open()
+            }
         },
         Kirigami.Action {
             text: qsTr("Undo")
             icon.name: "edit-undo"
+            displayHint: Kirigami.DisplayHint.AlwaysHide
             enabled: puzzleView.canUndo
             onTriggered: puzzleView.undo()
         },
         Kirigami.Action {
             text: qsTr("Redo")
             icon.name: "edit-redo"
+            displayHint: Kirigami.DisplayHint.AlwaysHide
             enabled: puzzleView.canRedo
             onTriggered: puzzleView.redo()
         },
         Kirigami.Action {
             text: qsTr("Solve")
             icon.name: "tools-solve"
+            displayHint: Kirigami.DisplayHint.AlwaysHide
             enabled: puzzleView.canSolve && !puzzleView.solved
             onTriggered: puzzleView.solve()
         },
         Kirigami.Action {
             text: qsTr("Help")
             icon.name: "help-contents"
+            displayHint: Kirigami.DisplayHint.AlwaysHide
             enabled: puzzleView.helpAvailable
             onTriggered: helpDialog.open()
+        },
+        Kirigami.Action {
+            text: qsTr("Game ID")
+            icon.name: "document-edit"
+            displayHint: Kirigami.DisplayHint.AlwaysHide
+            onTriggered: {
+                puzzleView.beginGameIdConfiguration()
+                configurationDialog.open()
+            }
+        },
+        Kirigami.Action {
+            text: qsTr("Random seed")
+            icon.name: "view-refresh"
+            displayHint: Kirigami.DisplayHint.AlwaysHide
+            onTriggered: {
+                puzzleView.beginRandomSeedConfiguration()
+                configurationDialog.open()
+            }
         }
     ]
 
@@ -177,47 +218,6 @@ Kirigami.Page {
     ColumnLayout {
         anchors.fill: parent
         spacing: Kirigami.Units.largeSpacing
-
-        Controls.ToolBar {
-            Layout.fillWidth: true
-
-            contentItem: Kirigami.ActionToolBar {
-                actions: [
-                    Kirigami.Action {
-                        text: qsTr("Presets")
-                        icon.name: "view-list-details"
-                        enabled: puzzleView.presetEntries.length > 0
-                        onTriggered: presetsDialog.open()
-                    },
-                    Kirigami.Action {
-                        text: qsTr("Custom settings")
-                        icon.name: "configure"
-                        enabled: puzzleView.canConfigure
-                        onTriggered: {
-                            puzzleView.beginConfiguration()
-                            configurationDialog.open()
-                        }
-                    },
-                    Kirigami.Action {
-                        text: qsTr("Game ID")
-                        icon.name: "document-edit"
-                        onTriggered: {
-                            puzzleView.beginGameIdConfiguration()
-                            configurationDialog.open()
-                        }
-                    },
-                    Kirigami.Action {
-                        text: qsTr("Random seed")
-                        icon.name: "view-refresh"
-                        onTriggered: {
-                            puzzleView.beginRandomSeedConfiguration()
-                            configurationDialog.open()
-                        }
-                    }
-                ]
-                alignment: Qt.AlignCenter
-            }
-        }
 
         PuzzleView {
             id: puzzleView
