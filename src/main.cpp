@@ -12,7 +12,7 @@ int main(int argc, char **argv)
 
     QGuiApplication application(argc, argv);
     application.setApplicationName(QStringLiteral("kpuzzles"));
-    application.setApplicationDisplayName(QStringLiteral("K Puzzles"));
+    application.setApplicationDisplayName(QStringLiteral("KPuzzles"));
     application.setOrganizationDomain(QStringLiteral("kde.org"));
 
     qmlRegisterType<PuzzleView>("kpuzzles", 1, 0, "PuzzleView");

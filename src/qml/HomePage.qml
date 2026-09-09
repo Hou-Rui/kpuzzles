@@ -13,20 +13,6 @@ Kirigami.Page {
         anchors.fill: parent
         spacing: Kirigami.Units.largeSpacing
 
-        Kirigami.Heading {
-            Layout.fillWidth: true
-            level: 1
-            text: qsTr("Simon Tatham's Portable Puzzle Collection")
-            wrapMode: Text.WordWrap
-        }
-
-        Controls.Label {
-            Layout.fillWidth: true
-            text: qsTr("Choose a puzzle to begin. Every game runs in this window.")
-            color: Kirigami.Theme.disabledTextColor
-            wrapMode: Text.WordWrap
-        }
-
         Controls.TextField {
             id: searchField
             Layout.fillWidth: true
@@ -37,12 +23,6 @@ Kirigami.Page {
                 clear()
                 focus = false
             }
-        }
-
-        Controls.Label {
-            Layout.fillWidth: true
-            text: qsTr("%1 puzzles").arg(puzzleCatalog.count)
-            color: Kirigami.Theme.disabledTextColor
         }
 
         GridView {

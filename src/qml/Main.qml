@@ -6,10 +6,10 @@ import org.kde.kirigami as Kirigami
 Kirigami.ApplicationWindow {
     id: root
 
-    width: 960
+    width: 1080
     height: 720
     visible: true
-    title: qsTr("K Puzzles")
+    title: qsTr("Simon Tatham's Portable Puzzle Collection")
 
     pageStack.initialPage: homePage
 
