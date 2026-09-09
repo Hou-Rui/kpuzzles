@@ -3,98 +3,84 @@ import QtQuick.Controls as Controls
 import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
 
-Kirigami.Page {
+Kirigami.ScrollablePage {
     id: root
 
     signal openPuzzle(string name, string displayName)
-    title: qsTr("Puzzles")
 
-    ColumnLayout {
-        anchors.fill: parent
-        spacing: Kirigami.Units.largeSpacing
+    titleDelegate: Controls.TextField {
+        id: searchField
 
-        Controls.TextField {
-            id: searchField
-            Layout.fillWidth: true
-            placeholderText: qsTr("Search puzzles…")
-            text: puzzleCatalog.filterText
-            onTextChanged: puzzleCatalog.filterText = text
-            Keys.onEscapePressed: {
-                clear()
-                focus = false
-            }
+        Layout.fillWidth: true
+        placeholderText: qsTr("Search puzzles...")
+        text: puzzleCatalog.filterText
+        onTextChanged: puzzleCatalog.filterText = text
+        Keys.onEscapePressed: {
+            clear();
+            focus = false;
         }
+    }
 
-        GridView {
-            id: puzzleGrid
-            Layout.fillWidth: true
-            Layout.fillHeight: true
-            clip: true
-            model: puzzleCatalog
-            cellWidth: Math.max(260, width / Math.max(1, Math.floor(width / 300)))
-            cellHeight: 156
-            leftMargin: Kirigami.Units.smallSpacing
-            rightMargin: Kirigami.Units.smallSpacing
-            topMargin: Kirigami.Units.smallSpacing
+    Kirigami.CardsListView {
+        id: puzzleGrid
+        model: puzzleCatalog
 
-            delegate: Kirigami.AbstractCard {
-                id: card
-                required property string name
-                required property string displayName
-                required property string description
-                required property string objective
-                required property bool canSolve
+        delegate: Kirigami.AbstractCard {
+            id: card
+            required property string name
+            required property string displayName
+            required property string description
+            required property string objective
+            required property bool canSolve
 
-                width: puzzleGrid.cellWidth - Kirigami.Units.smallSpacing
-                height: puzzleGrid.cellHeight - Kirigami.Units.smallSpacing
+            contentItem: RowLayout {
+                spacing: Kirigami.Units.largeSpacing
 
-                contentItem: RowLayout {
-                    spacing: Kirigami.Units.largeSpacing
+                Rectangle {
+                    Layout.preferredWidth: 8
+                    Layout.fillHeight: true
+                    radius: width / 2
+                    color: Kirigami.Theme.highlightColor
+                }
 
-                    Rectangle {
-                        Layout.preferredWidth: 8
-                        Layout.fillHeight: true
-                        radius: width / 2
-                        color: Kirigami.Theme.highlightColor
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    spacing: Kirigami.Units.smallSpacing
+
+                    Kirigami.Heading {
+                        Layout.fillWidth: true
+                        level: 3
+                        text: card.displayName
+                        elide: Text.ElideRight
                     }
 
-                    ColumnLayout {
+                    Controls.Label {
                         Layout.fillWidth: true
+                        text: card.description
+                        color: Kirigami.Theme.disabledTextColor
+                        elide: Text.ElideRight
+                    }
+
+                    Item {
                         Layout.fillHeight: true
-                        spacing: Kirigami.Units.smallSpacing
+                    }
 
-                        Kirigami.Heading {
-                            Layout.fillWidth: true
-                            level: 3
-                            text: card.displayName
-                            elide: Text.ElideRight
-                        }
-
-                        Controls.Label {
-                            Layout.fillWidth: true
-                            text: card.description
-                            color: Kirigami.Theme.disabledTextColor
-                            elide: Text.ElideRight
-                        }
-
-                        Item { Layout.fillHeight: true }
-
-                        Controls.Button {
-                            Layout.alignment: Qt.AlignRight
-                            text: qsTr("Play")
-                            icon.name: "media-playback-start"
-                            onClicked: root.openPuzzle(card.name, card.displayName)
-                        }
+                    Controls.Button {
+                        Layout.alignment: Qt.AlignRight
+                        text: qsTr("Play")
+                        icon.name: "media-playback-start"
+                        onClicked: root.openPuzzle(card.name, card.displayName)
                     }
                 }
             }
+        }
 
-            Controls.Label {
-                anchors.centerIn: parent
-                visible: puzzleCatalog.count === 0
-                text: qsTr("No puzzles match your search.")
-                color: Kirigami.Theme.disabledTextColor
-            }
+        Controls.Label {
+            anchors.centerIn: parent
+            visible: puzzleCatalog.count === 0
+            text: qsTr("No puzzles match your search.")
+            color: Kirigami.Theme.disabledTextColor
         }
     }
 }

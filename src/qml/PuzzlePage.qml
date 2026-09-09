@@ -178,25 +178,15 @@ Kirigami.Page {
         anchors.fill: parent
         spacing: Kirigami.Units.smallSpacing
 
-        RowLayout {
+        Controls.Label {
             Layout.fillWidth: true
-
-            Controls.Label {
-                Layout.fillWidth: true
-                text: puzzleView.statusText.length > 0
-                      ? puzzleView.statusText
-                      : qsTr("Use the mouse, touch, or keyboard to play.")
-                color: puzzleView.solved
-                       ? Kirigami.Theme.positiveTextColor
-                       : Kirigami.Theme.disabledTextColor
-                elide: Text.ElideRight
-            }
-
-            Controls.Button {
-                text: qsTr("Puzzle list")
-                icon.name: "go-previous"
-                onClicked: root.leavePuzzle()
-            }
+            text: puzzleView.statusText.length > 0
+                  ? puzzleView.statusText
+                  : qsTr("Use the mouse, touch, or keyboard to play.")
+            color: puzzleView.solved
+                   ? Kirigami.Theme.positiveTextColor
+                   : Kirigami.Theme.disabledTextColor
+            elide: Text.ElideRight
         }
 
         Controls.ToolBar {
