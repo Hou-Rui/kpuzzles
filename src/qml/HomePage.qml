@@ -32,6 +32,7 @@ Kirigami.ScrollablePage {
             required property string description
             required property string objective
             required property bool canSolve
+            required property bool favorite
 
             contentItem: RowLayout {
                 spacing: Kirigami.Units.largeSpacing
@@ -75,11 +76,28 @@ Kirigami.ScrollablePage {
                         Layout.fillHeight: true
                     }
 
-                    Controls.Button {
+                    RowLayout {
                         Layout.alignment: Qt.AlignRight
-                        text: qsTr("Play")
-                        icon.name: "media-playback-start"
-                        onClicked: root.openPuzzle(card.name, card.displayName)
+
+                        Controls.ToolButton {
+                            text: card.favorite
+                                ? qsTr("Remove from Favorites")
+                                : qsTr("Add to Favorites")
+                            display: Controls.AbstractButton.IconOnly
+                            icon.name: card.favorite
+                                ? "starred-symbolic"
+                                : "non-starred-symbolic"
+                            onClicked: puzzleCatalog.toggleFavorite(card.name)
+
+                            Controls.ToolTip.visible: hovered
+                            Controls.ToolTip.text: text
+                        }
+
+                        Controls.Button {
+                            text: qsTr("Play")
+                            icon.name: "media-playback-start"
+                            onClicked: root.openPuzzle(card.name, card.displayName)
+                        }
                     }
                 }
             }

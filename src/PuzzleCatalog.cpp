@@ -1,6 +1,7 @@
 #include "PuzzleCatalog.h"
 
 #include <QRegularExpression>
+#include <QSettings>
 
 #include <cstring>
 
@@ -52,9 +53,12 @@ constexpr PuzzleCatalog::Metadata metadata[] = {
 PuzzleCatalog::PuzzleCatalog(QObject *parent)
     : QAbstractListModel(parent)
 {
+    const QSettings settings;
+    const QStringList favoriteNames = settings.value(QStringLiteral("favoritePuzzles")).toStringList();
+    m_favorites = QSet<QString>(favoriteNames.cbegin(), favoriteNames.cend());
+
     m_games.reserve(gamecount);
-    for (int i = 0; i < gamecount; ++i)
-        m_games.append(gamelist[i]);
+    rebuildGameOrder();
 }
 
 int PuzzleCatalog::rowCount(const QModelIndex &parent) const
@@ -96,6 +100,8 @@ QVariant PuzzleCatalog::data(const QModelIndex &index, int role) const
             return info ? QString::fromLatin1(info->objective) : QString();
         case CanSolveRole:
             return candidate->can_solve;
+        case FavoriteRole:
+            return isFavorite(candidate);
         default:
             return {};
         }
@@ -111,6 +117,7 @@ QHash<int, QByteArray> PuzzleCatalog::roleNames() const
         {DescriptionRole, "description"},
         {ObjectiveRole, "objective"},
         {CanSolveRole, "canSolve"},
+        {FavoriteRole, "favorite"},
     };
 }
 
@@ -125,6 +132,32 @@ void PuzzleCatalog::setFilterText(const QString &text)
     emit countChanged();
 }
 
+void PuzzleCatalog::toggleFavorite(const QString &name)
+{
+    bool knownGame = false;
+    for (int i = 0; i < gamecount; ++i) {
+        if (name == QString::fromLatin1(gamelist[i]->name)) {
+            knownGame = true;
+            break;
+        }
+    }
+    if (!knownGame)
+        return;
+
+    beginResetModel();
+    if (m_favorites.contains(name))
+        m_favorites.remove(name);
+    else
+        m_favorites.insert(name);
+    rebuildGameOrder();
+    endResetModel();
+
+    QStringList favoriteNames = m_favorites.values();
+    favoriteNames.sort();
+    QSettings settings;
+    settings.setValue(QStringLiteral("favoritePuzzles"), favoriteNames);
+}
+
 const PuzzleCatalog::Metadata *PuzzleCatalog::metadataFor(const char *name)
 {
     if (!name)
@@ -137,6 +170,19 @@ const PuzzleCatalog::Metadata *PuzzleCatalog::metadataFor(const char *name)
     return nullptr;
 }
 
+void PuzzleCatalog::rebuildGameOrder()
+{
+    m_games.clear();
+    for (int i = 0; i < gamecount; ++i) {
+        if (isFavorite(gamelist[i]))
+            m_games.append(gamelist[i]);
+    }
+    for (int i = 0; i < gamecount; ++i) {
+        if (!isFavorite(gamelist[i]))
+            m_games.append(gamelist[i]);
+    }
+}
+
 bool PuzzleCatalog::matches(const game *candidate) const
 {
     if (m_filterText.trimmed().isEmpty())
@@ -147,4 +193,9 @@ bool PuzzleCatalog::matches(const game *candidate) const
         + (info ? QString::fromLatin1(info->displayName) : QString()) + u' '
         + (info ? QString::fromLatin1(info->description) : QString());
     return haystack.contains(m_filterText.trimmed(), Qt::CaseInsensitive);
+}
+
+bool PuzzleCatalog::isFavorite(const game *candidate) const
+{
+    return m_favorites.contains(QString::fromLatin1(candidate->name));
 }
