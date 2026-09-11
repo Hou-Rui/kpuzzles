@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 3.22)
 
 project(kpuzzles VERSION 0.1.0 LANGUAGES C CXX)
 
+include(GNUInstallDirs)
+
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_STANDARD 20)
@@ -169,6 +171,12 @@ qt_add_resources(kpuzzles puzzle_help
     FILES ${PUZZLES_HELP_FILES}
 )
 
+qt_add_resources(kpuzzles application_icon
+    PREFIX "/icons"
+    BASE "${CMAKE_CURRENT_SOURCE_DIR}/data/icons"
+    FILES "${CMAKE_CURRENT_SOURCE_DIR}/data/icons/org.kde.kpuzzles.svg"
+)
+
 qt_add_qml_module(kpuzzles
     URI kpuzzles
     VERSION 1.0
@@ -201,5 +209,14 @@ set_target_properties(kpuzzles PROPERTIES
 
 install(TARGETS kpuzzles
     BUNDLE DESTINATION .
-    RUNTIME DESTINATION bin
+    RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}"
 )
+
+if(UNIX AND NOT APPLE)
+    install(FILES data/org.kde.kpuzzles.desktop
+        DESTINATION "${CMAKE_INSTALL_DATADIR}/applications"
+    )
+    install(FILES data/icons/org.kde.kpuzzles.svg
+        DESTINATION "${CMAKE_INSTALL_DATADIR}/icons/hicolor/scalable/apps"
+    )
+endif()

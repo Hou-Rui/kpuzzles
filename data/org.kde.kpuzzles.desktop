@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=KPuzzles
+GenericName=Logic Puzzle Collection
+Comment=Play Simon Tatham's collection of logic puzzles
+Exec=kpuzzlesapp
+Icon=org.kde.kpuzzles
+Terminal=false
+Categories=Game;LogicGame;Qt;KDE;
+Keywords=logic;puzzle;game;
+StartupNotify=true

@@ -2,6 +2,7 @@
 #include "PuzzleView.h"
 
 #include <QGuiApplication>
+#include <QIcon>
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
 
@@ -14,6 +15,10 @@ int main(int argc, char **argv)
     application.setApplicationName(QStringLiteral("kpuzzles"));
     application.setApplicationDisplayName(QStringLiteral("KPuzzles"));
     application.setOrganizationDomain(QStringLiteral("kde.org"));
+    application.setDesktopFileName(QStringLiteral("org.kde.kpuzzles"));
+    application.setWindowIcon(QIcon::fromTheme(
+        QStringLiteral("org.kde.kpuzzles"),
+        QIcon(QStringLiteral(":/icons/org.kde.kpuzzles.svg"))));
 
     qmlRegisterType<PuzzleView>("kpuzzles", 1, 0, "PuzzleView");
 
