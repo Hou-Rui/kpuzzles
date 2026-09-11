@@ -230,9 +230,9 @@ Kirigami.Page {
 
         Controls.Label {
             Layout.fillWidth: true
-            text: puzzleView.statusText.length > 0
-                  ? puzzleView.statusText
-                  : qsTr("Use the mouse, touch, or keyboard to play.")
+            text: (puzzleView.solved && puzzleView.statusText.length === 0)
+                  ? qsTr("COMPLETED!")
+                  : puzzleView.statusText
             color: puzzleView.solved
                    ? Kirigami.Theme.positiveTextColor
                    : Kirigami.Theme.textColor
