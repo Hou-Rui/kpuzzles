@@ -1,5 +1,6 @@
 #include "PuzzleCatalog.h"
 #include "PuzzleView.h"
+#include "SessionState.h"
 
 #include <QGuiApplication>
 #include <QIcon>
@@ -23,9 +24,14 @@ int main(int argc, char **argv)
     qmlRegisterType<PuzzleView>("kpuzzles", 1, 0, "PuzzleView");
 
     PuzzleCatalog catalog;
+    SessionState sessionState;
     QQmlApplicationEngine engine;
     engine.rootContext()->setContextProperty(QStringLiteral("puzzleCatalog"),
                                              &catalog);
+    engine.rootContext()->setContextProperty(QStringLiteral("sessionState"),
+                                             &sessionState);
+    QObject::connect(&application, &QCoreApplication::aboutToQuit,
+                     &sessionState, &SessionState::saveSession);
     QObject::connect(&engine, &QQmlApplicationEngine::objectCreationFailed,
                      &application, [] { QCoreApplication::exit(EXIT_FAILURE); },
                      Qt::QueuedConnection);

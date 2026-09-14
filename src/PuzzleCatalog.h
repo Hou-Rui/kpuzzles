@@ -40,6 +40,7 @@ public:
     QString filterText() const { return m_filterText; }
     void setFilterText(const QString &text);
 
+    Q_INVOKABLE QString displayNameForGame(const QString &name) const;
     Q_INVOKABLE void toggleFavorite(const QString &name);
 
 signals:

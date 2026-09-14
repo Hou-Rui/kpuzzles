@@ -29,6 +29,7 @@ class PuzzleView : public QQuickPaintedItem
     Q_PROPERTY(bool canRedo READ canRedo NOTIFY capabilitiesChanged)
     Q_PROPERTY(bool canSolve READ canSolve NOTIFY capabilitiesChanged)
     Q_PROPERTY(bool solved READ solved NOTIFY solvedChanged)
+    Q_PROPERTY(bool autoSaveEnabled READ autoSaveEnabled WRITE setAutoSaveEnabled NOTIFY autoSaveEnabledChanged)
     Q_PROPERTY(QVariantList presetEntries READ presetEntries NOTIFY menuChanged)
     Q_PROPERTY(bool canConfigure READ canConfigure NOTIFY menuChanged)
     Q_PROPERTY(QVariantList configuration READ configuration NOTIFY configurationChanged)
@@ -50,6 +51,8 @@ public:
     bool canRedo() const { return m_canRedo; }
     bool canSolve() const { return m_canSolve; }
     bool solved() const { return m_solved; }
+    bool autoSaveEnabled() const { return m_autoSaveEnabled; }
+    void setAutoSaveEnabled(bool enabled);
     QVariantList presetEntries() const { return m_presetEntries; }
     bool canConfigure() const { return m_canConfigure; }
     QVariantList configuration() const { return m_configuration; }
@@ -81,6 +84,7 @@ signals:
     void statusTextChanged();
     void capabilitiesChanged();
     void solvedChanged();
+    void autoSaveEnabledChanged();
     void menuChanged();
     void configurationChanged();
     void configurationTitleChanged();
@@ -100,6 +104,10 @@ protected:
 private:
     void clearGame();
     void loadGame(const game *selectedGame);
+    QString autoSaveFilePath() const;
+    void saveAutoSavedGame();
+    bool restoreAutoSavedGame();
+    void removeAutoSavedGame();
     void resizePuzzle();
     void rebuildImage();
     qreal devicePixelRatio() const;
@@ -147,6 +155,7 @@ private:
     bool m_canRedo = false;
     bool m_canSolve = false;
     bool m_solved = false;
+    bool m_autoSaveEnabled = true;
     int m_puzzleWidth = 0;
     int m_puzzleHeight = 0;
     int m_pressedButton = 0;

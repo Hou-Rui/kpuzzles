@@ -154,6 +154,8 @@ qt_add_executable(kpuzzles
     src/PuzzleCatalog.h
     src/PuzzleView.cpp
     src/PuzzleView.h
+    src/SessionState.cpp
+    src/SessionState.h
     src/night-colours.txt
     ${GENERATED_NIGHT_COLOURS_HEADER}
     ${PUZZLES_SOURCES}

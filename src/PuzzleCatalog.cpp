@@ -132,6 +132,20 @@ void PuzzleCatalog::setFilterText(const QString &text)
     emit countChanged();
 }
 
+QString PuzzleCatalog::displayNameForGame(const QString &name) const
+{
+    for (int i = 0; i < gamecount; ++i) {
+        const game *candidate = gamelist[i];
+        if (name != QString::fromLatin1(candidate->name))
+            continue;
+
+        const Metadata *info = metadataFor(candidate->htmlhelp_topic);
+        return info ? QString::fromLatin1(info->displayName)
+                    : QString::fromLatin1(candidate->name).replace('_', ' ');
+    }
+    return {};
+}
+
 void PuzzleCatalog::toggleFavorite(const QString &name)
 {
     bool knownGame = false;

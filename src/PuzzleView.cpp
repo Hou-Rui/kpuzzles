@@ -12,7 +12,9 @@
 
 #include <QElapsedTimer>
 #include <QEvent>
+#include <QDir>
 #include <QFile>
+#include <QFileInfo>
 #include <QFont>
 #include <QFontMetrics>
 #include <QGuiApplication>
@@ -22,7 +24,9 @@
 #include <QPalette>
 #include <QQuickWindow>
 #include <QRandomGenerator>
+#include <QSaveFile>
 #include <QScreen>
+#include <QStandardPaths>
 #include <QTimer>
 #include <QVariantMap>
 
@@ -32,6 +36,30 @@
 #include <cstring>
 
 namespace {
+struct SerialisedGame {
+    QByteArray data;
+    qsizetype offset = 0;
+};
+
+void writeSerialisedGame(void *context, const void *data, int length)
+{
+    auto *game = static_cast<SerialisedGame *>(context);
+    game->data.append(static_cast<const char *>(data), length);
+}
+
+bool readSerialisedGame(void *context, void *data, int length)
+{
+    auto *game = static_cast<SerialisedGame *>(context);
+    if (length < 0 || game->offset > game->data.size() ||
+        length > game->data.size() - game->offset)
+        return false;
+
+    std::memcpy(data, game->data.constData() + game->offset,
+                static_cast<size_t>(length));
+    game->offset += length;
+    return true;
+}
+
 bool darkPalette()
 {
     if (!QGuiApplication::instance())
@@ -149,6 +177,11 @@ PuzzleView::PuzzleView(QQuickItem *parent)
         midend_timer(m_midend, static_cast<float>(elapsed) / 1000.0F);
     });
 
+    if (auto *application = QCoreApplication::instance()) {
+        connect(application, &QCoreApplication::aboutToQuit, this,
+                [this] { saveAutoSavedGame(); });
+    }
+
     connect(this, &QQuickItem::windowChanged, this,
             [this](QQuickWindow *window) {
                 if (m_observedWindow) {
@@ -219,6 +252,14 @@ void PuzzleView::setGameName(const QString &name)
     loadGame(selectedGame);
 }
 
+void PuzzleView::setAutoSaveEnabled(bool enabled)
+{
+    if (m_autoSaveEnabled == enabled)
+        return;
+    m_autoSaveEnabled = enabled;
+    emit autoSaveEnabledChanged();
+}
+
 void PuzzleView::refreshHelpText()
 {
     QString help;
@@ -255,6 +296,7 @@ void PuzzleView::clearGame()
     clearConfiguration();
 
     if (m_midend) {
+        saveAutoSavedGame();
         midend_free(m_midend);
         m_midend = nullptr;
     }
@@ -302,12 +344,112 @@ void PuzzleView::loadGame(const game *selectedGame)
     auto *frontend = reinterpret_cast<::frontend *>(m_frontendState);
     m_midend = midend_new(frontend, selectedGame, &s_drawingApi,
                           m_frontendState);
-    midend_new_game(m_midend);
+    if (!restoreAutoSavedGame())
+        midend_new_game(m_midend);
     refreshColours();
     resizePuzzle();
     refreshCapabilities();
     refreshMenuData();
     refreshHelpText();
+}
+
+QString PuzzleView::autoSaveFilePath() const
+{
+    if (!m_midend)
+        return {};
+
+    const game *currentGame = midend_which_game(m_midend);
+    const QString dataLocation = QStandardPaths::writableLocation(
+        QStandardPaths::AppDataLocation);
+    if (!currentGame || dataLocation.isEmpty())
+        return {};
+
+    return QDir(dataLocation).filePath(
+        QStringLiteral("saved-games/%1.sav").arg(
+            QString::fromLatin1(currentGame->name)));
+}
+
+void PuzzleView::saveAutoSavedGame()
+{
+    if (!m_autoSaveEnabled || !m_midend)
+        return;
+
+    const QString filePath = autoSaveFilePath();
+    if (filePath.isEmpty())
+        return;
+
+    // A zero status is the engine's definition of a game still in progress.
+    // Completed and failed games should start afresh when next opened.
+    if (midend_status(m_midend) != 0) {
+        removeAutoSavedGame();
+        return;
+    }
+
+    QDir directory = QFileInfo(filePath).dir();
+    if (!directory.mkpath(QStringLiteral("."))) {
+        qWarning("Unable to create auto-save directory: %s",
+                 qUtf8Printable(directory.path()));
+        return;
+    }
+
+    SerialisedGame game;
+    midend_serialise(m_midend, writeSerialisedGame, &game);
+
+    QSaveFile file(filePath);
+    if (!file.open(QIODevice::WriteOnly)) {
+        qWarning("Unable to open auto-save file: %s",
+                 qUtf8Printable(file.errorString()));
+        return;
+    }
+    if (file.write(game.data) != game.data.size() || !file.commit()) {
+        qWarning("Unable to write auto-save file: %s",
+                 qUtf8Printable(file.errorString()));
+    }
+}
+
+bool PuzzleView::restoreAutoSavedGame()
+{
+    if (!m_autoSaveEnabled || !m_midend)
+        return false;
+
+    const QString filePath = autoSaveFilePath();
+    QFile file(filePath);
+    if (filePath.isEmpty() || !file.exists())
+        return false;
+    if (!file.open(QIODevice::ReadOnly)) {
+        qWarning("Unable to open auto-save file: %s",
+                 qUtf8Printable(file.errorString()));
+        return false;
+    }
+
+    SerialisedGame game;
+    game.data = file.readAll();
+    if (file.error() != QFileDevice::NoError) {
+        qWarning("Unable to read auto-save file: %s",
+                 qUtf8Printable(file.errorString()));
+        return false;
+    }
+    file.close();
+
+    const char *error = midend_deserialise(m_midend, readSerialisedGame,
+                                            &game);
+    if (!error && midend_status(m_midend) == 0)
+        return true;
+
+    if (error)
+        qWarning("Unable to restore auto-save file: %s", error);
+    removeAutoSavedGame();
+    return false;
+}
+
+void PuzzleView::removeAutoSavedGame()
+{
+    const QString filePath = autoSaveFilePath();
+    if (!filePath.isEmpty() && QFile::exists(filePath) &&
+        !QFile::remove(filePath)) {
+        qWarning("Unable to remove auto-save file: %s",
+                 qUtf8Printable(filePath));
+    }
 }
 
 void PuzzleView::refreshColours()
