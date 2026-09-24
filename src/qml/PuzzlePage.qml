@@ -16,12 +16,14 @@ Kirigami.Page {
         Kirigami.Action {
             text: qsTr("New game")
             icon.name: "document-new"
+            shortcut: StandardKey.New
             displayHint: Kirigami.DisplayHint.KeepVisible
             onTriggered: puzzleView.newGame()
         },
         Kirigami.Action {
             text: qsTr("Restart")
             icon.name: "view-refresh"
+            shortcut: StandardKey.Refresh
             displayHint: Kirigami.DisplayHint.KeepVisible
             onTriggered: puzzleView.restartGame()
         },
@@ -45,6 +47,7 @@ Kirigami.Page {
         Kirigami.Action {
             text: qsTr("Undo")
             icon.name: "edit-undo"
+            shortcut: StandardKey.Undo
             displayHint: Kirigami.DisplayHint.AlwaysHide
             enabled: puzzleView.canUndo
             onTriggered: puzzleView.undo()
@@ -52,6 +55,7 @@ Kirigami.Page {
         Kirigami.Action {
             text: qsTr("Redo")
             icon.name: "edit-redo"
+            shortcut: StandardKey.Redo
             displayHint: Kirigami.DisplayHint.AlwaysHide
             enabled: puzzleView.canRedo
             onTriggered: puzzleView.redo()
