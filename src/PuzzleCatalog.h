@@ -29,6 +29,7 @@ public:
         ObjectiveRole,
         CanSolveRole,
         FavoriteRole,
+        ThumbnailRole,
     };
 
     explicit PuzzleCatalog(QObject *parent = nullptr);

@@ -107,9 +107,12 @@ set(PUZZLES_GAME_NAMES
 )
 
 set(PUZZLES_HELP_FILES)
+set(PUZZLES_THUMBNAIL_FILES)
 foreach(game_name IN LISTS PUZZLES_GAME_NAMES)
     list(APPEND PUZZLES_HELP_FILES
         "${PUZZLES_DIR}/html/${game_name}.html")
+    list(APPEND PUZZLES_THUMBNAIL_FILES
+        "${CMAKE_CURRENT_SOURCE_DIR}/data/thumbnails/${game_name}.png")
 endforeach()
 
 # list.c includes this generated header when COMBINED is enabled.
@@ -177,6 +180,12 @@ qt_add_resources(kpuzzles application_icon
     PREFIX "/icons"
     BASE "${CMAKE_CURRENT_SOURCE_DIR}/data/icons"
     FILES "${CMAKE_CURRENT_SOURCE_DIR}/data/icons/org.kde.kpuzzles.svg"
+)
+
+qt_add_resources(kpuzzles puzzle_thumbnails
+    PREFIX "/puzzle-thumbnails"
+    BASE "${CMAKE_CURRENT_SOURCE_DIR}/data/thumbnails"
+    FILES ${PUZZLES_THUMBNAIL_FILES}
 )
 
 qt_add_qml_module(kpuzzles

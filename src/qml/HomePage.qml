@@ -33,20 +33,37 @@ Kirigami.ScrollablePage {
             required property string objective
             required property bool canSolve
             required property bool favorite
+            required property string thumbnail
 
-            contentItem: RowLayout {
-                spacing: Kirigami.Units.largeSpacing
+            contentItem: Item {
+                implicitWidth: contentLayout.implicitWidth
+                implicitHeight: contentLayout.implicitHeight
+                clip: true
 
-                Rectangle {
-                    Layout.preferredWidth: 8
-                    Layout.fillHeight: true
-                    radius: width / 2
-                    color: Kirigami.Theme.highlightColor
+                Item {
+                    anchors.top: parent.top
+                    anchors.right: parent.right
+                    anchors.bottom: parent.bottom
+                    width: Math.min(parent.width, height / 0.3)
+                    clip: true
+
+                    Image {
+                        anchors.fill: parent
+                        source: card.thumbnail
+                        sourceSize: Qt.size(320, 320)
+                        sourceClipRect: Qt.rect(0, 0, 320, 96)
+                        fillMode: Image.PreserveAspectCrop
+                        horizontalAlignment: Image.AlignRight
+                        verticalAlignment: Image.AlignTop
+                        opacity: 0.1
+                        asynchronous: true
+                        smooth: true
+                    }
                 }
 
                 ColumnLayout {
-                    Layout.fillWidth: true
-                    Layout.fillHeight: true
+                    id: contentLayout
+                    anchors.fill: parent
                     spacing: Kirigami.Units.smallSpacing
                     
                     RowLayout {

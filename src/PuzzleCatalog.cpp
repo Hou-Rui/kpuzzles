@@ -102,6 +102,11 @@ QVariant PuzzleCatalog::data(const QModelIndex &index, int role) const
             return candidate->can_solve;
         case FavoriteRole:
             return isFavorite(candidate);
+        case ThumbnailRole:
+            return candidate->htmlhelp_topic
+                ? QStringLiteral("qrc:/puzzle-thumbnails/%1.png").arg(
+                    QString::fromLatin1(candidate->htmlhelp_topic))
+                : QString();
         default:
             return {};
         }
@@ -118,6 +123,7 @@ QHash<int, QByteArray> PuzzleCatalog::roleNames() const
         {ObjectiveRole, "objective"},
         {CanSolveRole, "canSolve"},
         {FavoriteRole, "favorite"},
+        {ThumbnailRole, "thumbnail"},
     };
 }
 
