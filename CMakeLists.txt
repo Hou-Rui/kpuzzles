@@ -56,49 +56,6 @@ set(PUZZLES_CORE_SOURCES
     hat.c
 )
 
-set(PUZZLES_GAME_SOURCES
-    blackbox.c
-    bridges.c
-    cube.c
-    dominosa.c
-    fifteen.c
-    filling.c
-    flip.c
-    flood.c
-    galaxies.c
-    guess.c
-    inertia.c
-    keen.c
-    lightup.c
-    loopy.c
-    magnets.c
-    map.c
-    mines.c
-    mosaic.c
-    net.c
-    netslide.c
-    palisade.c
-    pattern.c
-    pearl.c
-    pegs.c
-    range.c
-    rect.c
-    samegame.c
-    signpost.c
-    singles.c
-    sixteen.c
-    slant.c
-    solo.c
-    tents.c
-    towers.c
-    tracks.c
-    twiddle.c
-    undead.c
-    unequal.c
-    unruly.c
-    untangle.c
-)
-
 set(PUZZLES_GAME_NAMES
     blackbox bridges cube dominosa fifteen filling flip flood galaxies guess
     inertia keen lightup loopy magnets map mines mosaic net netslide palisade
@@ -108,7 +65,9 @@ set(PUZZLES_GAME_NAMES
 
 set(PUZZLES_HELP_FILES)
 set(PUZZLES_THUMBNAIL_FILES)
+set(PUZZLES_GAME_SOURCES)
 foreach(game_name IN LISTS PUZZLES_GAME_NAMES)
+    list(APPEND PUZZLES_GAME_SOURCES "${game_name}.c")
     list(APPEND PUZZLES_HELP_FILES
         "${PUZZLES_DIR}/html/${game_name}.html")
     list(APPEND PUZZLES_THUMBNAIL_FILES
@@ -119,10 +78,34 @@ endforeach()
 set(GENERATED_PUZZLES_INCLUDE "${CMAKE_CURRENT_BINARY_DIR}/generated-puzzles")
 file(MAKE_DIRECTORY "${GENERATED_PUZZLES_INCLUDE}")
 set(GENERATED_GAMES_HEADER "${GENERATED_PUZZLES_INCLUDE}/generated-games.h")
-file(WRITE "${GENERATED_GAMES_HEADER}" "")
+set(generated_games "")
 foreach(game_name IN LISTS PUZZLES_GAME_NAMES)
-    file(APPEND "${GENERATED_GAMES_HEADER}" "GAME(${game_name})\n")
+    string(APPEND generated_games "GAME(${game_name})\n")
 endforeach()
+set(generated_games_temporary "${GENERATED_GAMES_HEADER}.tmp")
+file(WRITE "${generated_games_temporary}" "${generated_games}")
+configure_file(
+    "${generated_games_temporary}"
+    "${GENERATED_GAMES_HEADER}"
+    COPYONLY
+)
+file(REMOVE "${generated_games_temporary}")
+
+# Puzzle display names and summaries belong to the upstream puzzle catalog.
+# Generate a compile-time table from that source so the frontend cannot drift
+# from the bundled version of puzzles.
+include(cmake/GeneratePuzzleMetadata.cmake)
+set(PUZZLES_UPSTREAM_CMAKE "${PUZZLES_DIR}/CMakeLists.txt")
+set(GENERATED_PUZZLE_METADATA_HEADER
+    "${GENERATED_PUZZLES_INCLUDE}/generated-puzzle-metadata.h")
+generate_puzzle_metadata(
+    "${GENERATED_PUZZLE_METADATA_HEADER}"
+    "${PUZZLES_UPSTREAM_CMAKE}"
+    ${PUZZLES_GAME_NAMES}
+)
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
+    "${PUZZLES_UPSTREAM_CMAKE}"
+)
 
 # The dark palette is maintained using symbolic COL_* names. Resolve those
 # names against the bundled puzzle sources at configure time so an upstream
@@ -160,6 +143,7 @@ qt_add_executable(kpuzzles
     src/SessionState.cpp
     src/SessionState.h
     src/night-colours.txt
+    ${GENERATED_PUZZLE_METADATA_HEADER}
     ${GENERATED_NIGHT_COLOURS_HEADER}
     ${PUZZLES_SOURCES}
 )

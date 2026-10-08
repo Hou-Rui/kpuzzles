@@ -8,6 +8,8 @@ extern "C" {
 #include "puzzles.h"
 }
 
+struct PuzzleMetadata;
+
 class PuzzleCatalog final : public QAbstractListModel
 {
     Q_OBJECT
@@ -15,13 +17,6 @@ class PuzzleCatalog final : public QAbstractListModel
     Q_PROPERTY(QString filterText READ filterText WRITE setFilterText NOTIFY filterTextChanged)
 
 public:
-    struct Metadata {
-        const char *name;
-        const char *displayName;
-        const char *description;
-        const char *objective;
-    };
-
     enum Role {
         NameRole = Qt::UserRole + 1,
         DisplayNameRole,
@@ -49,7 +44,7 @@ signals:
     void filterTextChanged();
 
 private:
-    static const Metadata *metadataFor(const char *name);
+    static const PuzzleMetadata *metadataFor(const char *id);
     void rebuildGameOrder();
     bool matches(const game *candidate) const;
     bool isFavorite(const game *candidate) const;
