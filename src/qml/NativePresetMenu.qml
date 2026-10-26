@@ -1,3 +1,5 @@
+pragma ComponentBehavior: Bound
+
 import QtQml
 import QtQml.Models
 import Qt.labs.platform as Platform
@@ -24,12 +26,11 @@ Platform.Menu {
 
             text: presetTitle
             checkable: true
-            checked: presetMenu && presetMenu.puzzlePage
-                ? presetMenu.puzzlePage.currentPresetId === presetId : false
+            checked: presetMenu && presetMenu.puzzlePage ? presetMenu.puzzlePage.currentPresetId === presetId : false
             group: targetGroup
             onTriggered: {
                 if (presetMenu && presetMenu.puzzlePage)
-                    presetMenu.puzzlePage.selectPreset(presetId)
+                    presetMenu.puzzlePage.selectPreset(presetId);
             }
         }
     }
@@ -38,52 +39,46 @@ Platform.Menu {
         id: presetInstantiator
         model: root.entries
 
+        // The factory owns the native item it creates; the platform menu only
+        // holds a non-owning reference (removeItem/removeMenu never delete it),
+        // so the underlying widget QMenu is freed exactly once, at teardown.
         delegate: QtObject {
             id: factory
 
             required property int index
             required property var modelData
-            readonly property bool isSubmenu:
-                modelData.children !== undefined
+            readonly property bool isSubmenu: modelData.children !== undefined
             property QtObject menuObject: null
 
             Component.onCompleted: {
                 if (factory.isSubmenu) {
-                    const submenuComponent = Qt.createComponent(
-                        Qt.resolvedUrl("NativePresetMenu.qml"))
-                    const childEntries = factory.modelData.children
-                    factory.menuObject = submenuComponent.createObject(
-                        factory, {
-                            title: factory.modelData.title,
-                            entries: [],
-                            puzzlePage: Qt.binding(function() {
-                                return root.puzzlePage
-                            })
-                        })
-                    root.insertMenu(factory.index, factory.menuObject)
-                    Qt.callLater(function() {
-                        if (factory.menuObject)
-                            factory.menuObject.entries = childEntries
-                    })
+                    factory.menuObject = Qt.createComponent(Qt.resolvedUrl("NativePresetMenu.qml")).createObject(factory);
+                    factory.menuObject.title = factory.modelData.title;
+                    root.insertMenu(factory.index, factory.menuObject);
+                    factory.menuObject.puzzlePage = Qt.binding(function () {
+                        return root.puzzlePage;
+                    });
+                    factory.menuObject.entries = factory.modelData.children;
                 } else {
-                    factory.menuObject = presetItemComponent.createObject(
-                        factory, {
-                            presetId: factory.modelData.id,
-                            presetTitle: factory.modelData.title,
-                            presetMenu: root,
-                            targetGroup: presetGroup
-                        })
-                    root.insertItem(factory.index, factory.menuObject)
+                    factory.menuObject = presetItemComponent.createObject(factory, {
+                        presetId: factory.modelData.id,
+                        presetTitle: factory.modelData.title,
+                        presetMenu: root,
+                        targetGroup: presetGroup
+                    });
+                    root.insertItem(factory.index, factory.menuObject);
                 }
             }
 
             Component.onDestruction: {
-                if (!factory.menuObject)
-                    return
+                const item = factory.menuObject;
+                if (!item)
+                    return;
+                factory.menuObject = null;
                 if (factory.isSubmenu)
-                    root.removeMenu(factory.menuObject)
+                    root.removeMenu(item);
                 else
-                    root.removeItem(factory.menuObject)
+                    root.removeItem(item);
             }
         }
     }
