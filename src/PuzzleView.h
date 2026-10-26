@@ -31,6 +31,8 @@ class PuzzleView : public QQuickPaintedItem
     Q_PROPERTY(bool solved READ solved NOTIFY solvedChanged)
     Q_PROPERTY(bool autoSaveEnabled READ autoSaveEnabled WRITE setAutoSaveEnabled NOTIFY autoSaveEnabledChanged)
     Q_PROPERTY(QVariantList presetEntries READ presetEntries NOTIFY menuChanged)
+    Q_PROPERTY(QVariantList presetMenuEntries READ presetMenuEntries NOTIFY menuChanged)
+    Q_PROPERTY(int currentPresetId READ currentPresetId NOTIFY menuChanged)
     Q_PROPERTY(bool canConfigure READ canConfigure NOTIFY menuChanged)
     Q_PROPERTY(QVariantList configuration READ configuration NOTIFY configurationChanged)
     Q_PROPERTY(QString configurationTitle READ configurationTitle NOTIFY configurationTitleChanged)
@@ -54,6 +56,8 @@ public:
     bool autoSaveEnabled() const { return m_autoSaveEnabled; }
     void setAutoSaveEnabled(bool enabled);
     QVariantList presetEntries() const { return m_presetEntries; }
+    QVariantList presetMenuEntries() const { return m_presetMenuEntries; }
+    int currentPresetId() const { return m_currentPresetId; }
     bool canConfigure() const { return m_canConfigure; }
     QVariantList configuration() const { return m_configuration; }
     QString configurationTitle() const { return m_configurationTitle; }
@@ -115,6 +119,8 @@ private:
     void refreshHelpText();
     void appendPresetEntries(const preset_menu *menu, const QString &prefix,
                              int currentPreset);
+    QVariantList buildPresetMenuEntries(const preset_menu *menu,
+                                        int currentPreset) const;
     void beginConfiguration(int which);
     void clearConfiguration();
     void rebuildConfigurationModel();
@@ -162,6 +168,8 @@ private:
     QImage m_image;
     QVector<float> m_colours;
     QVariantList m_presetEntries;
+    QVariantList m_presetMenuEntries;
+    int m_currentPresetId = -1;
     bool m_canConfigure = false;
     QVariantList m_configuration;
     QString m_configurationTitle;

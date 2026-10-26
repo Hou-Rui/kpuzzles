@@ -9,11 +9,28 @@ Kirigami.Page {
 
     property string gameName
     property string displayName
+    property alias newGameAction: newGameActionObject
+    property alias restartAction: restartActionObject
+    property alias presetsAction: presetsActionObject
+    property alias presetMenuEntries: puzzleView.presetMenuEntries
+    property alias currentPresetId: puzzleView.currentPresetId
+    property alias customSettingsAction: customSettingsActionObject
+    property alias undoAction: undoActionObject
+    property alias redoAction: redoActionObject
+    property alias solveAction: solveActionObject
+    property alias helpAction: helpActionObject
+    property alias gameIdAction: gameIdActionObject
+    property alias randomSeedAction: randomSeedActionObject
     signal leavePuzzle()
     title: root.displayName
 
+    function selectPreset(presetId) {
+        puzzleView.selectPreset(presetId)
+    }
+
     actions: [
         Kirigami.Action {
+            id: newGameActionObject
             text: qsTr("New game")
             icon.name: "document-new"
             shortcut: StandardKey.New
@@ -21,6 +38,7 @@ Kirigami.Page {
             onTriggered: puzzleView.newGame()
         },
         Kirigami.Action {
+            id: restartActionObject
             text: qsTr("Restart")
             icon.name: "view-refresh"
             shortcut: StandardKey.Refresh
@@ -28,6 +46,7 @@ Kirigami.Page {
             onTriggered: puzzleView.restartGame()
         },
         Kirigami.Action {
+            id: presetsActionObject
             text: qsTr("Presets")
             icon.name: "view-list-details"
             displayHint: Kirigami.DisplayHint.KeepVisible
@@ -35,6 +54,7 @@ Kirigami.Page {
             onTriggered: presetsDialog.open()
         },
         Kirigami.Action {
+            id: customSettingsActionObject
             text: qsTr("Custom settings")
             icon.name: "configure"
             displayHint: Kirigami.DisplayHint.KeepVisible
@@ -45,6 +65,7 @@ Kirigami.Page {
             }
         },
         Kirigami.Action {
+            id: undoActionObject
             text: qsTr("Undo")
             icon.name: "edit-undo"
             shortcut: StandardKey.Undo
@@ -53,6 +74,7 @@ Kirigami.Page {
             onTriggered: puzzleView.undo()
         },
         Kirigami.Action {
+            id: redoActionObject
             text: qsTr("Redo")
             icon.name: "edit-redo"
             shortcut: StandardKey.Redo
@@ -61,6 +83,7 @@ Kirigami.Page {
             onTriggered: puzzleView.redo()
         },
         Kirigami.Action {
+            id: solveActionObject
             text: qsTr("Solve")
             icon.name: "tools-solve"
             displayHint: Kirigami.DisplayHint.AlwaysHide
@@ -68,6 +91,7 @@ Kirigami.Page {
             onTriggered: puzzleView.solve()
         },
         Kirigami.Action {
+            id: helpActionObject
             text: qsTr("Help")
             icon.name: "help-contents"
             displayHint: Kirigami.DisplayHint.AlwaysHide
@@ -75,6 +99,7 @@ Kirigami.Page {
             onTriggered: helpDialog.open()
         },
         Kirigami.Action {
+            id: gameIdActionObject
             text: qsTr("Game ID")
             icon.name: "document-edit"
             displayHint: Kirigami.DisplayHint.AlwaysHide
@@ -84,6 +109,7 @@ Kirigami.Page {
             }
         },
         Kirigami.Action {
+            id: randomSeedActionObject
             text: qsTr("Random seed")
             icon.name: "view-refresh"
             displayHint: Kirigami.DisplayHint.AlwaysHide

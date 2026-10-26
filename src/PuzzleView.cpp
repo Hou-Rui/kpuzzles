@@ -488,17 +488,25 @@ void PuzzleView::refreshMenuData()
 {
     const bool oldCanConfigure = m_canConfigure;
     const QVariantList oldPresets = m_presetEntries;
+    const QVariantList oldPresetMenu = m_presetMenuEntries;
+    const int oldCurrentPreset = m_currentPresetId;
 
     m_presetEntries.clear();
+    m_presetMenuEntries.clear();
+    m_currentPresetId = -1;
     m_canConfigure = false;
     if (m_midend) {
         preset_menu *menu = midend_get_presets(m_midend, nullptr);
-        const int currentPreset = midend_which_preset(m_midend);
-        appendPresetEntries(menu, QString(), currentPreset);
+        m_currentPresetId = midend_which_preset(m_midend);
+        appendPresetEntries(menu, QString(), m_currentPresetId);
+        m_presetMenuEntries = buildPresetMenuEntries(menu,
+                                                     m_currentPresetId);
         m_canConfigure = midend_which_game(m_midend)->can_configure;
     }
 
-    if (oldCanConfigure != m_canConfigure || oldPresets != m_presetEntries)
+    if (oldCanConfigure != m_canConfigure || oldPresets != m_presetEntries ||
+        oldPresetMenu != m_presetMenuEntries ||
+        oldCurrentPreset != m_currentPresetId)
         emit menuChanged();
 }
 
@@ -528,6 +536,30 @@ void PuzzleView::appendPresetEntries(const preset_menu *menu,
             appendPresetEntries(entry.submenu, childPrefix, currentPreset);
         }
     }
+}
+
+QVariantList PuzzleView::buildPresetMenuEntries(const preset_menu *menu,
+                                                int currentPreset) const
+{
+    QVariantList entries;
+    if (!menu)
+        return entries;
+
+    for (int i = 0; i < menu->n_entries; ++i) {
+        const preset_menu_entry &entry = menu->entries[i];
+        QVariantMap item;
+        item.insert(QStringLiteral("title"), QString::fromUtf8(entry.title));
+        if (entry.params) {
+            item.insert(QStringLiteral("id"), entry.id);
+            item.insert(QStringLiteral("selected"),
+                        entry.id == currentPreset);
+        } else {
+            item.insert(QStringLiteral("children"),
+                        buildPresetMenuEntries(entry.submenu, currentPreset));
+        }
+        entries.append(item);
+    }
+    return entries;
 }
 
 void PuzzleView::clearConfiguration()

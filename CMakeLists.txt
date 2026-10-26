@@ -9,7 +9,15 @@ set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(Qt6 6.8 REQUIRED COMPONENTS Core Gui Qml Quick QuickControls2)
+find_package(Qt6 6.8 REQUIRED COMPONENTS
+    Core
+    Gui
+    LabsPlatform
+    Qml
+    Quick
+    QuickControls2
+    Widgets
+)
 
 # Kirigami is a QML dependency.  It is deliberately discovered here so that
 # package managers can diagnose a missing KDE runtime dependency at configure
@@ -177,6 +185,8 @@ qt_add_qml_module(kpuzzles
     VERSION 1.0
     QML_FILES
         src/qml/Main.qml
+        src/qml/NativeActionMenuItem.qml
+        src/qml/NativePresetMenu.qml
         src/qml/HomePage.qml
         src/qml/PuzzlePage.qml
 )
@@ -184,9 +194,11 @@ qt_add_qml_module(kpuzzles
 target_link_libraries(kpuzzles PRIVATE
     Qt6::Core
     Qt6::Gui
+    Qt6::LabsPlatform
     Qt6::Qml
     Qt6::Quick
     Qt6::QuickControls2
+    Qt6::Widgets
     m
 )
 

@@ -2,7 +2,7 @@
 #include "PuzzleView.h"
 #include "SessionState.h"
 
-#include <QGuiApplication>
+#include <QApplication>
 #include <QIcon>
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
@@ -12,7 +12,7 @@ int main(int argc, char **argv)
     if (!qEnvironmentVariableIsSet("QT_QUICK_CONTROLS_STYLE"))
         qputenv("QT_QUICK_CONTROLS_STYLE", "org.kde.desktop");
 
-    QGuiApplication application(argc, argv);
+    QApplication application(argc, argv);
     application.setApplicationName(QStringLiteral("kpuzzles"));
     application.setApplicationDisplayName(QStringLiteral("KPuzzles"));
     application.setOrganizationDomain(QStringLiteral("kde.org"));
