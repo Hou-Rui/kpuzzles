@@ -186,7 +186,6 @@ qt_add_qml_module(kpuzzles
     QML_FILES
         src/qml/Main.qml
         src/qml/NativeActionMenuItem.qml
-        src/qml/NativePresetMenu.qml
         src/qml/HomePage.qml
         src/qml/PuzzlePage.qml
 )

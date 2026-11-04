@@ -12,8 +12,6 @@ Kirigami.Page {
     property alias newGameAction: newGameActionObject
     property alias restartAction: restartActionObject
     property alias presetsAction: presetsActionObject
-    property alias presetMenuEntries: puzzleView.presetMenuEntries
-    property alias currentPresetId: puzzleView.currentPresetId
     property alias customSettingsAction: customSettingsActionObject
     property alias undoAction: undoActionObject
     property alias redoAction: redoActionObject
@@ -23,10 +21,6 @@ Kirigami.Page {
     property alias randomSeedAction: randomSeedActionObject
     signal leavePuzzle()
     title: root.displayName
-
-    function selectPreset(presetId) {
-        puzzleView.selectPreset(presetId)
-    }
 
     actions: [
         Kirigami.Action {

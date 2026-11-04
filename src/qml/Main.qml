@@ -66,12 +66,9 @@ Kirigami.ApplicationWindow {
 
             Platform.MenuSeparator {}
 
-            NativePresetMenu {
-                title: qsTr("Presets")
-                entries: root.puzzleActive
-                    ? root.activePuzzlePage.presetMenuEntries : []
-                puzzlePage: root.puzzleActive ? root.activePuzzlePage : null
-                enabled: entries.length > 0
+            NativeActionMenuItem {
+                sourceAction: root.puzzleActive
+                    ? root.activePuzzlePage.presetsAction : null
             }
             NativeActionMenuItem {
                 sourceAction: root.puzzleActive
