@@ -9,109 +9,34 @@ Kirigami.Page {
 
     property string gameName
     property string displayName
-    property alias newGameAction: newGameActionObject
-    property alias restartAction: restartActionObject
-    property alias presetsAction: presetsActionObject
-    property alias customSettingsAction: customSettingsActionObject
-    property alias undoAction: undoActionObject
-    property alias redoAction: redoActionObject
-    property alias solveAction: solveActionObject
-    property alias helpAction: helpActionObject
-    property alias gameIdAction: gameIdActionObject
-    property alias randomSeedAction: randomSeedActionObject
+    readonly property alias puzzleView: puzzleView
+    readonly property alias presetsDialog: presetsDialog
+    readonly property alias configurationDialog: configurationDialog
+    readonly property alias helpDialog: helpDialog
+    required property Kirigami.Action newGameAction
+    required property Kirigami.Action restartAction
+    required property Kirigami.Action presetsAction
+    required property Kirigami.Action customSettingsAction
+    required property Kirigami.Action undoAction
+    required property Kirigami.Action redoAction
+    required property Kirigami.Action solveAction
+    required property Kirigami.Action helpAction
+    required property Kirigami.Action gameIdAction
+    required property Kirigami.Action randomSeedAction
     signal leavePuzzle()
     title: root.displayName
 
     actions: [
-        Kirigami.Action {
-            id: newGameActionObject
-            text: qsTr("New game")
-            icon.name: "document-new"
-            shortcut: StandardKey.New
-            displayHint: Kirigami.DisplayHint.KeepVisible
-            onTriggered: puzzleView.newGame()
-        },
-        Kirigami.Action {
-            id: restartActionObject
-            text: qsTr("Restart")
-            icon.name: "view-refresh"
-            shortcut: StandardKey.Refresh
-            displayHint: Kirigami.DisplayHint.KeepVisible
-            onTriggered: puzzleView.restartGame()
-        },
-        Kirigami.Action {
-            id: presetsActionObject
-            text: qsTr("Presets")
-            icon.name: "view-list-details"
-            displayHint: Kirigami.DisplayHint.KeepVisible
-            enabled: puzzleView.presetEntries.length > 0
-            onTriggered: presetsDialog.open()
-        },
-        Kirigami.Action {
-            id: customSettingsActionObject
-            text: qsTr("Custom settings")
-            icon.name: "configure"
-            displayHint: Kirigami.DisplayHint.KeepVisible
-            enabled: puzzleView.canConfigure
-            onTriggered: {
-                puzzleView.beginConfiguration()
-                configurationDialog.open()
-            }
-        },
-        Kirigami.Action {
-            id: undoActionObject
-            text: qsTr("Undo")
-            icon.name: "edit-undo"
-            shortcut: StandardKey.Undo
-            displayHint: Kirigami.DisplayHint.AlwaysHide
-            enabled: puzzleView.canUndo
-            onTriggered: puzzleView.undo()
-        },
-        Kirigami.Action {
-            id: redoActionObject
-            text: qsTr("Redo")
-            icon.name: "edit-redo"
-            shortcut: StandardKey.Redo
-            displayHint: Kirigami.DisplayHint.AlwaysHide
-            enabled: puzzleView.canRedo
-            onTriggered: puzzleView.redo()
-        },
-        Kirigami.Action {
-            id: solveActionObject
-            text: qsTr("Solve")
-            icon.name: "tools-solve"
-            displayHint: Kirigami.DisplayHint.AlwaysHide
-            enabled: puzzleView.canSolve && !puzzleView.solved
-            onTriggered: puzzleView.solve()
-        },
-        Kirigami.Action {
-            id: helpActionObject
-            text: qsTr("Help")
-            icon.name: "help-contents"
-            displayHint: Kirigami.DisplayHint.AlwaysHide
-            enabled: puzzleView.helpAvailable
-            onTriggered: helpDialog.open()
-        },
-        Kirigami.Action {
-            id: gameIdActionObject
-            text: qsTr("Game ID")
-            icon.name: "document-edit"
-            displayHint: Kirigami.DisplayHint.AlwaysHide
-            onTriggered: {
-                puzzleView.beginGameIdConfiguration()
-                configurationDialog.open()
-            }
-        },
-        Kirigami.Action {
-            id: randomSeedActionObject
-            text: qsTr("Random seed")
-            icon.name: "view-refresh"
-            displayHint: Kirigami.DisplayHint.AlwaysHide
-            onTriggered: {
-                puzzleView.beginRandomSeedConfiguration()
-                configurationDialog.open()
-            }
-        }
+        newGameAction,
+        restartAction,
+        presetsAction,
+        customSettingsAction,
+        undoAction,
+        redoAction,
+        solveAction,
+        helpAction,
+        gameIdAction,
+        randomSeedAction
     ]
 
     Kirigami.Dialog {
