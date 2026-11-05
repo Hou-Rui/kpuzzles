@@ -33,6 +33,7 @@ Kirigami.ScrollablePage {
             required property string objective
             required property bool canSolve
             required property bool favorite
+            required property bool hasSave
             required property string thumbnail
 
             contentItem: Item {
@@ -95,6 +96,12 @@ Kirigami.ScrollablePage {
 
                     RowLayout {
                         Layout.alignment: Qt.AlignRight
+
+                        Kirigami.Badge {
+                            visible: card.hasSave
+                            icon.name: "document-save"
+                            text: qsTr("Saved")
+                        }
 
                         Controls.ToolButton {
                             text: card.favorite

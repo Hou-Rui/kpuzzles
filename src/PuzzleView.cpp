@@ -353,20 +353,39 @@ void PuzzleView::loadGame(const game *selectedGame)
     refreshHelpText();
 }
 
+QString PuzzleView::savedGamesDir()
+{
+    const QString dataLocation = QStandardPaths::writableLocation(
+        QStandardPaths::AppDataLocation);
+    if (dataLocation.isEmpty())
+        return {};
+
+    return QDir(dataLocation).filePath(QStringLiteral("saved-games"));
+}
+
+QString PuzzleView::savedGamePath(const QString &gameName)
+{
+    if (gameName.isEmpty())
+        return {};
+
+    const QString directory = savedGamesDir();
+    if (directory.isEmpty())
+        return {};
+
+    return QDir(directory).filePath(
+        QStringLiteral("%1.sav").arg(gameName));
+}
+
 QString PuzzleView::autoSaveFilePath() const
 {
     if (!m_midend)
         return {};
 
     const game *currentGame = midend_which_game(m_midend);
-    const QString dataLocation = QStandardPaths::writableLocation(
-        QStandardPaths::AppDataLocation);
-    if (!currentGame || dataLocation.isEmpty())
+    if (!currentGame)
         return {};
 
-    return QDir(dataLocation).filePath(
-        QStringLiteral("saved-games/%1.sav").arg(
-            QString::fromLatin1(currentGame->name)));
+    return savedGamePath(QString::fromLatin1(currentGame->name));
 }
 
 void PuzzleView::saveAutoSavedGame()

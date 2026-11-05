@@ -1,6 +1,9 @@
 #include "PuzzleCatalog.h"
+#include "PuzzleView.h"
 #include "generated-puzzle-metadata.h"
 
+#include <QDir>
+#include <QFile>
 #include <QRegularExpression>
 #include <QSettings>
 
@@ -12,6 +15,18 @@ PuzzleCatalog::PuzzleCatalog(QObject *parent)
     const QSettings settings;
     const QStringList favoriteNames = settings.value(QStringLiteral("favoritePuzzles")).toStringList();
     m_favorites = QSet<QString>(favoriteNames.cbegin(), favoriteNames.cend());
+
+    // A run still in progress is auto-saved when its page is closed, so the
+    // set of existing save files changes while the catalog is alive.  Watch
+    // the save directory to keep the hasSave role current without callers
+    // having to know about the save layout.  The directory is created up
+    // front because PuzzleView only creates it lazily on the first save, and
+    // a watcher cannot observe a directory that does not exist yet.
+    const QString savesDirectory = PuzzleView::savedGamesDir();
+    if (!savesDirectory.isEmpty() && QDir().mkpath(savesDirectory))
+        m_saveWatcher.addPath(savesDirectory);
+    connect(&m_saveWatcher, &QFileSystemWatcher::directoryChanged,
+            this, &PuzzleCatalog::refreshSavedGames);
 
     m_games.reserve(gamecount);
     rebuildGameOrder();
@@ -63,6 +78,8 @@ QVariant PuzzleCatalog::data(const QModelIndex &index, int role) const
                 ? QStringLiteral("qrc:/puzzle-thumbnails/%1.png").arg(
                     QString::fromLatin1(candidate->htmlhelp_topic))
                 : QString();
+        case HasSaveRole:
+            return hasSavedGame(QString::fromLatin1(candidate->name));
         default:
             return {};
         }
@@ -80,6 +97,7 @@ QHash<int, QByteArray> PuzzleCatalog::roleNames() const
         {CanSolveRole, "canSolve"},
         {FavoriteRole, "favorite"},
         {ThumbnailRole, "thumbnail"},
+        {HasSaveRole, "hasSave"},
     };
 }
 
@@ -174,4 +192,19 @@ bool PuzzleCatalog::matches(const game *candidate) const
 bool PuzzleCatalog::isFavorite(const game *candidate) const
 {
     return m_favorites.contains(QString::fromLatin1(candidate->name));
+}
+
+bool PuzzleCatalog::hasSavedGame(const QString &name) const
+{
+    const QString filePath = PuzzleView::savedGamePath(name);
+    return !filePath.isEmpty() && QFile::exists(filePath);
+}
+
+void PuzzleCatalog::refreshSavedGames()
+{
+    const int rows = rowCount();
+    if (rows == 0)
+        return;
+
+    emit dataChanged(index(0, 0), index(rows - 1, 0), {HasSaveRole});
 }

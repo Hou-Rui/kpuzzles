@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QAbstractListModel>
+#include <QFileSystemWatcher>
 #include <QSet>
 #include <QVector>
 
@@ -25,6 +26,7 @@ public:
         CanSolveRole,
         FavoriteRole,
         ThumbnailRole,
+        HasSaveRole,
     };
 
     explicit PuzzleCatalog(QObject *parent = nullptr);
@@ -48,8 +50,11 @@ private:
     void rebuildGameOrder();
     bool matches(const game *candidate) const;
     bool isFavorite(const game *candidate) const;
+    bool hasSavedGame(const QString &name) const;
+    void refreshSavedGames();
 
     QVector<const game *> m_games;
     QSet<QString> m_favorites;
     QString m_filterText;
+    QFileSystemWatcher m_saveWatcher;
 };

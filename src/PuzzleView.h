@@ -77,6 +77,12 @@ public:
     void backendDeactivateTimer();
     static FrontendState *stateFrom(frontend *frontend);
 
+    // Location of the per-game auto-save files, and of the file kept for an
+    // unfinished run of gameName.  Shared with PuzzleCatalog, which reports
+    // the existence of saves in its model.
+    static QString savedGamesDir();
+    static QString savedGamePath(const QString &gameName);
+
 signals:
     void gameNameChanged();
     void helpTextChanged();
