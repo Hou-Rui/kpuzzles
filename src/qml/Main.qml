@@ -30,6 +30,7 @@ Kirigami.ApplicationWindow {
         checkable: sourceAction ? sourceAction.checkable : false
         checked: sourceAction ? sourceAction.checked : false
         icon.name: sourceAction ? sourceAction.icon.name : ""
+        shortcut: sourceAction ? sourceAction.shortcut : ""
 
         onTriggered: {
             if (sourceAction)
