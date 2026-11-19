@@ -66,7 +66,7 @@ Kirigami.ScrollablePage {
                     id: contentLayout
                     anchors.fill: parent
                     spacing: Kirigami.Units.smallSpacing
-                    
+
                     RowLayout {
                         Kirigami.Heading {
                             Layout.fillWidth: true
@@ -79,7 +79,7 @@ Kirigami.ScrollablePage {
                             elide: Text.ElideRight
                         }
                     }
-                    
+
                     Kirigami.Separator {
                         Layout.fillWidth: true
                     }
@@ -104,13 +104,9 @@ Kirigami.ScrollablePage {
                         }
 
                         Controls.ToolButton {
-                            text: card.favorite
-                                ? qsTr("Remove from Favorites")
-                                : qsTr("Add to Favorites")
+                            text: card.favorite ? qsTr("Remove from Favorites") : qsTr("Add to Favorites")
                             display: Controls.AbstractButton.IconOnly
-                            icon.name: card.favorite
-                                ? "starred-symbolic"
-                                : "non-starred-symbolic"
+                            icon.name: card.favorite ? "starred-symbolic" : "non-starred-symbolic"
                             onClicked: puzzleCatalog.toggleFavorite(card.name)
 
                             Controls.ToolTip.visible: hovered

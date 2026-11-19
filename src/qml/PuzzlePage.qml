@@ -13,31 +13,8 @@ Kirigami.Page {
     readonly property alias presetsDialog: presetsDialog
     readonly property alias configurationDialog: configurationDialog
     readonly property alias helpDialog: helpDialog
-    required property Kirigami.Action newGameAction
-    required property Kirigami.Action restartAction
-    required property Kirigami.Action presetsAction
-    required property Kirigami.Action customSettingsAction
-    required property Kirigami.Action undoAction
-    required property Kirigami.Action redoAction
-    required property Kirigami.Action solveAction
-    required property Kirigami.Action helpAction
-    required property Kirigami.Action gameIdAction
-    required property Kirigami.Action randomSeedAction
-    signal leavePuzzle()
+    signal leavePuzzle
     title: root.displayName
-
-    actions: [
-        newGameAction,
-        restartAction,
-        presetsAction,
-        customSettingsAction,
-        undoAction,
-        redoAction,
-        solveAction,
-        helpAction,
-        gameIdAction,
-        randomSeedAction
-    ]
 
     Kirigami.Dialog {
         id: helpDialog
@@ -82,8 +59,8 @@ Kirigami.Page {
                 text: modelData.label
                 checked: modelData.selected
                 onClicked: {
-                    puzzleView.selectPreset(presetId)
-                    presetsDialog.close()
+                    puzzleView.selectPreset(presetId);
+                    presetsDialog.close();
                 }
             }
         }
@@ -100,7 +77,7 @@ Kirigami.Page {
 
         onAccepted: {
             if (!puzzleView.applyConfiguration())
-                configurationDialog.open()
+                configurationDialog.open();
         }
         onRejected: puzzleView.cancelConfiguration()
 
@@ -138,26 +115,22 @@ Kirigami.Page {
                         Layout.fillWidth: true
                         visible: configurationEntry.modelData.type === 0
                         text: configurationEntry.modelData.value
-                        onEditingFinished: puzzleView.setConfigurationValue(
-                            configurationEntry.index, text)
+                        onEditingFinished: puzzleView.setConfigurationValue(configurationEntry.index, text)
                     }
 
                     Controls.ComboBox {
                         Layout.fillWidth: true
                         visible: configurationEntry.modelData.type === 1
                         model: configurationEntry.modelData.choices
-                        currentIndex: configurationEntry.modelData.type === 1
-                            ? configurationEntry.modelData.selected : -1
-                        onActivated: puzzleView.setConfigurationValue(
-                            configurationEntry.index, currentIndex)
+                        currentIndex: configurationEntry.modelData.type === 1 ? configurationEntry.modelData.selected : -1
+                        onActivated: puzzleView.setConfigurationValue(configurationEntry.index, currentIndex)
                     }
 
                     Controls.CheckBox {
                         Layout.fillWidth: true
                         visible: configurationEntry.modelData.type === 2
                         checked: configurationEntry.modelData.value
-                        onToggled: puzzleView.setConfigurationValue(
-                            configurationEntry.index, checked)
+                        onToggled: puzzleView.setConfigurationValue(configurationEntry.index, checked)
                     }
                 }
             }
@@ -179,12 +152,8 @@ Kirigami.Page {
 
         Controls.Label {
             Layout.fillWidth: true
-            text: (puzzleView.solved && puzzleView.statusText.length === 0)
-                  ? qsTr("COMPLETED!")
-                  : puzzleView.statusText
-            color: puzzleView.solved
-                   ? Kirigami.Theme.positiveTextColor
-                   : Kirigami.Theme.textColor
+            text: (puzzleView.solved && puzzleView.statusText.length === 0) ? qsTr("COMPLETED!") : puzzleView.statusText
+            color: puzzleView.solved ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.textColor
             horizontalAlignment: Text.AlignHCenter
             elide: Text.ElideRight
         }
