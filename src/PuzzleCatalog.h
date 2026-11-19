@@ -41,7 +41,7 @@ public:
     Q_INVOKABLE QString displayNameForGame(const QString &name) const;
     Q_INVOKABLE void toggleFavorite(const QString &name);
 
-signals:
+Q_SIGNALS:
     void countChanged();
     void filterTextChanged();
 

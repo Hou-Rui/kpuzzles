@@ -59,7 +59,7 @@ QVariant PuzzleCatalog::data(const QModelIndex &index, int role) const
 
         const PuzzleMetadata *info = metadataFor(candidate->htmlhelp_topic);
         const QString fallback = QString::fromLatin1(candidate->name)
-                                     .replace('_', ' ');
+                                     .replace(QLatin1Char('_'), QLatin1Char(' '));
         switch (role) {
         case NameRole:
             return QString::fromLatin1(candidate->name);
@@ -108,8 +108,8 @@ void PuzzleCatalog::setFilterText(const QString &text)
     beginResetModel();
     m_filterText = text;
     endResetModel();
-    emit filterTextChanged();
-    emit countChanged();
+    Q_EMIT filterTextChanged();
+    Q_EMIT countChanged();
 }
 
 QString PuzzleCatalog::displayNameForGame(const QString &name) const
@@ -121,7 +121,8 @@ QString PuzzleCatalog::displayNameForGame(const QString &name) const
 
         const PuzzleMetadata *info = metadataFor(candidate->htmlhelp_topic);
         return info ? QString::fromLatin1(info->displayName)
-                    : QString::fromLatin1(candidate->name).replace('_', ' ');
+                    : QString::fromLatin1(candidate->name)
+                          .replace(QLatin1Char('_'), QLatin1Char(' '));
     }
     return {};
 }
@@ -206,5 +207,5 @@ void PuzzleCatalog::refreshSavedGames()
     if (rows == 0)
         return;
 
-    emit dataChanged(index(0, 0), index(rows - 1, 0), {HasSaveRole});
+    Q_EMIT dataChanged(index(0, 0), index(rows - 1, 0), {HasSaveRole});
 }

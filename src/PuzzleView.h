@@ -83,7 +83,7 @@ public:
     static QString savedGamesDir();
     static QString savedGamePath(const QString &gameName);
 
-signals:
+Q_SIGNALS:
     void gameNameChanged();
     void helpTextChanged();
     void helpAvailableChanged();

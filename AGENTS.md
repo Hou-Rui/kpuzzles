@@ -25,9 +25,10 @@ Configure and build from the repository root:
     cmake -S . -B build
     cmake --build build
 
-This requires CMake 3.22+, Qt 6.8 (Core, Gui, Qml, Quick, and QuickControls2),
-and Kirigami at runtime. Launch the built application with
-`./build/kpuzzlesapp`. Re-run `cmake --build build` after source changes.
+This requires CMake 3.22+, Extra CMake Modules 6.0+, Qt 6.8 (Core, Gui, Qml,
+Quick, and QuickControls2), and Kirigami at runtime. Launch the built
+application with `./build/bin/kpuzzlesapp`. Re-run `cmake --build build` after
+source changes.
 
 There is no configured automated test target or formatter. Treat a successful
 build and a manual smoke test as the current validation baseline.

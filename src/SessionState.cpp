@@ -26,7 +26,7 @@ void SessionState::setRestoreLastGameEnabled(bool enabled)
     m_restoreLastGameEnabled = enabled;
     QSettings settings;
     settings.setValue(restoreLastGameKey, enabled);
-    emit restoreLastGameEnabledChanged();
+    Q_EMIT restoreLastGameEnabledChanged();
 }
 
 void SessionState::setActiveGame(const QString &name)

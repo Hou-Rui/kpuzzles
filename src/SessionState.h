@@ -20,7 +20,7 @@ public:
     Q_INVOKABLE void clearActiveGame();
     void saveSession() const;
 
-signals:
+Q_SIGNALS:
     void restoreLastGameEnabledChanged();
 
 private:

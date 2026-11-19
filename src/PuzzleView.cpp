@@ -238,7 +238,7 @@ void PuzzleView::setGameName(const QString &name)
 
     if (m_gameName != name) {
         m_gameName = name;
-        emit gameNameChanged();
+        Q_EMIT gameNameChanged();
     }
 
     const QByteArray encodedName = name.toLatin1();
@@ -257,7 +257,7 @@ void PuzzleView::setAutoSaveEnabled(bool enabled)
     if (m_autoSaveEnabled == enabled)
         return;
     m_autoSaveEnabled = enabled;
-    emit autoSaveEnabledChanged();
+    Q_EMIT autoSaveEnabledChanged();
 }
 
 void PuzzleView::refreshHelpText()
@@ -282,9 +282,9 @@ void PuzzleView::refreshHelpText()
     m_helpAvailable = !help.isEmpty();
     m_helpText = help;
     if (oldHelpAvailable != m_helpAvailable)
-        emit helpAvailableChanged();
+        Q_EMIT helpAvailableChanged();
     if (oldHelpText != m_helpText)
-        emit helpTextChanged();
+        Q_EMIT helpTextChanged();
 }
 
 void PuzzleView::clearGame()
@@ -305,9 +305,9 @@ void PuzzleView::clearGame()
     m_helpAvailable = false;
     m_helpText.clear();
     if (oldHelpAvailable)
-        emit helpAvailableChanged();
+        Q_EMIT helpAvailableChanged();
     if (hadHelpText)
-        emit helpTextChanged();
+        Q_EMIT helpTextChanged();
     m_image = {};
     m_colours.clear();
     m_puzzleWidth = 0;
@@ -324,12 +324,12 @@ void PuzzleView::clearGame()
     m_canSolve = false;
     m_solved = false;
     if (oldCanUndo || oldCanRedo || oldCanSolve)
-        emit capabilitiesChanged();
+        Q_EMIT capabilitiesChanged();
     if (oldSolved)
-        emit solvedChanged();
+        Q_EMIT solvedChanged();
     if (!m_statusText.isEmpty()) {
         m_statusText.clear();
-        emit statusTextChanged();
+        Q_EMIT statusTextChanged();
     }
     update();
     refreshMenuData();
@@ -530,7 +530,7 @@ void PuzzleView::refreshMenuData()
     }
 
     if (oldCanConfigure != m_canConfigure || oldPresets != m_presetEntries)
-        emit menuChanged();
+        Q_EMIT menuChanged();
 }
 
 void PuzzleView::appendPresetEntries(const preset_menu *menu,
@@ -574,9 +574,9 @@ void PuzzleView::clearConfiguration()
     m_configurationTitle.clear();
     m_configurationError.clear();
     if (hadConfiguration) {
-        emit configurationChanged();
-        emit configurationTitleChanged();
-        emit configurationErrorChanged();
+        Q_EMIT configurationChanged();
+        Q_EMIT configurationTitleChanged();
+        Q_EMIT configurationErrorChanged();
     }
 }
 
@@ -585,7 +585,7 @@ void PuzzleView::setConfigurationError(const QString &error)
     if (m_configurationError == error)
         return;
     m_configurationError = error;
-    emit configurationErrorChanged();
+    Q_EMIT configurationErrorChanged();
 }
 
 void PuzzleView::rebuildConfigurationModel()
@@ -629,7 +629,7 @@ void PuzzleView::rebuildConfigurationModel()
     }
 
     if (oldConfiguration != m_configuration)
-        emit configurationChanged();
+        Q_EMIT configurationChanged();
 }
 
 void PuzzleView::beginConfiguration(int which)
@@ -647,7 +647,7 @@ void PuzzleView::beginConfiguration(int which)
     }
     setConfigurationError(QString());
     rebuildConfigurationModel();
-    emit configurationTitleChanged();
+    Q_EMIT configurationTitleChanged();
 }
 
 void PuzzleView::setConfigurationValue(int index, const QVariant &value)
@@ -766,16 +766,16 @@ void PuzzleView::refreshCapabilities()
     m_canSolve = canSolveNow;
     m_solved = solvedNow;
     if (capabilitiesChangedNow)
-        emit capabilitiesChanged();
+        Q_EMIT capabilitiesChanged();
     if (solvedChangedNow)
-        emit solvedChanged();
+        Q_EMIT solvedChanged();
 }
 
 void PuzzleView::handleResult(int result)
 {
     refreshCapabilities();
     if (result == PKR_QUIT)
-        emit quitRequested();
+        Q_EMIT quitRequested();
     update();
 }
 
@@ -863,8 +863,8 @@ bool PuzzleView::applyConfiguration()
     m_configuration.clear();
     m_configurationTitle.clear();
     setConfigurationError(QString());
-    emit configurationChanged();
-    emit configurationTitleChanged();
+    Q_EMIT configurationChanged();
+    Q_EMIT configurationTitleChanged();
 
     if (m_configurationKind != CFG_PREFS) {
         midend_new_game(m_midend);
@@ -1207,7 +1207,7 @@ void PuzzleView::statusBar(drawing *drawing, const char *text)
     if (view->m_statusText == status)
         return;
     view->m_statusText = status;
-    emit view->statusTextChanged();
+    Q_EMIT view->statusTextChanged();
 }
 
 blitter *PuzzleView::blitterNew(drawing *, int width, int height)

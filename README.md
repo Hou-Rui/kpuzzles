@@ -16,6 +16,7 @@ adaptive interface.
 ## Requirements
 
 - CMake 3.22 or newer
+- Extra CMake Modules (ECM) 6.0 or newer
 - Qt 6.8 or newer (Core, Gui, Qml, Quick, QuickControls2, Widgets,
   LabsPlatform)
 - KDE Kirigami 6 runtime
@@ -35,7 +36,7 @@ Configure and build from the repository root:
 
 Launch the application:
 
-    ./build/kpuzzlesapp
+    ./build/bin/kpuzzlesapp
 
 ## Repository Layout
 
