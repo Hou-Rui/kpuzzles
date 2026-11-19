@@ -388,6 +388,11 @@ QString PuzzleView::autoSaveFilePath() const
     return savedGamePath(QString::fromLatin1(currentGame->name));
 }
 
+bool PuzzleView::gameHasHistory() const
+{
+    return m_midend && (midend_can_undo(m_midend) || midend_can_redo(m_midend));
+}
+
 void PuzzleView::saveAutoSavedGame()
 {
     if (!m_autoSaveEnabled || !m_midend)
@@ -400,6 +405,13 @@ void PuzzleView::saveAutoSavedGame()
     // A zero status is the engine's definition of a game still in progress.
     // Completed and failed games should start afresh when next opened.
     if (midend_status(m_midend) != 0) {
+        removeAutoSavedGame();
+        return;
+    }
+
+    // A game without history was never played: don't persist it, and drop
+    // any stale save, so the next launch generates a fresh puzzle.
+    if (!gameHasHistory()) {
         removeAutoSavedGame();
         return;
     }

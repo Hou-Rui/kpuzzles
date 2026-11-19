@@ -111,6 +111,7 @@ private:
     void clearGame();
     void loadGame(const game *selectedGame);
     QString autoSaveFilePath() const;
+    bool gameHasHistory() const;
     void saveAutoSavedGame();
     bool restoreAutoSavedGame();
     void removeAutoSavedGame();
