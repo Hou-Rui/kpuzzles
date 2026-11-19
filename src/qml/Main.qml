@@ -7,9 +7,7 @@ import org.kde.kirigami as Kirigami
 Kirigami.ApplicationWindow {
     id: root
 
-    property bool sessionTrackingReady: false
     property PuzzlePage activePuzzlePage: null
-    property string activePuzzleName
     readonly property bool puzzleActive: root.pageStack.currentItem === root.activePuzzlePage
 
     width: 1080
@@ -206,18 +204,11 @@ Kirigami.ApplicationWindow {
         });
         if (page) {
             root.activePuzzlePage = page;
-            root.activePuzzleName = name;
+            // Remember the game for the next launch's session restore.  The
+            // session game is never cleared, so quitting on the home page
+            // still restores the last opened game.
+            sessionState.setActiveGame(name);
         }
-    }
-
-    function updateActiveGame() {
-        if (!root.sessionTrackingReady)
-            return;
-        const currentPage = root.pageStack.currentItem;
-        if (currentPage === root.activePuzzlePage)
-            sessionState.setActiveGame(root.activePuzzleName);
-        else if (currentPage === homePage)
-            sessionState.clearActiveGame();
     }
 
     Component.onCompleted: {
@@ -225,15 +216,6 @@ Kirigami.ApplicationWindow {
             const displayName = puzzleCatalog.displayNameForGame(sessionState.lastGameName);
             if (displayName.length > 0)
                 root.openPuzzle(sessionState.lastGameName, displayName);
-        }
-        root.sessionTrackingReady = true;
-        root.updateActiveGame();
-    }
-
-    Connections {
-        target: root.pageStack
-        function onCurrentItemChanged() {
-            root.updateActiveGame();
         }
     }
 

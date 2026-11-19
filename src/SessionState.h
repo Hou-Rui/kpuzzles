@@ -17,7 +17,6 @@ public:
     QString lastGameName() const { return m_lastGameName; }
 
     Q_INVOKABLE void setActiveGame(const QString &name);
-    Q_INVOKABLE void clearActiveGame();
     void saveSession() const;
 
 Q_SIGNALS:

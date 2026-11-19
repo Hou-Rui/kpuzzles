@@ -34,11 +34,6 @@ void SessionState::setActiveGame(const QString &name)
     m_activeGameName = name;
 }
 
-void SessionState::clearActiveGame()
-{
-    m_activeGameName.clear();
-}
-
 void SessionState::saveSession() const
 {
     QSettings settings;
